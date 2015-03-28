@@ -1,0 +1,21 @@
+#github에 추가되지 않을 파일 목록
+
+# 특정 확장자 파일들을 무시
+*.kate-swp
+*.autosave
+*.pyc
+
+# 특정 디렉토리 내 파일들을 무시
+/sync
+/memo.txt
+/dist
+/MANIFEST
+/mozrepl.egg-info
+/build
+/docs/_build/*
+/docs/_static/*
+/docs/_templates/*
+
+#특정 파일들을 무시하지 않음.
+!.gitignore
+
