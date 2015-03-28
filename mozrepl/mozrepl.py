@@ -7,6 +7,7 @@ import re
 import telnetlib
 
 from .exception import Exception as MozException
+#from .object import Object
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242
@@ -14,6 +15,8 @@ DEFAULT_PORT = 4242
 class Mozrepl(object):
 	"""
 	모질라 파이어폭스에서 REPL 확장 프로그램을 실행한 뒤 사용하십시오.
+	
+	with 구문을 지원합니다.
 	
 	..
 	   https://github.com/bard/mozrepl/wiki/Pyrepl bard/mozrepl Wiki
@@ -56,7 +59,7 @@ class Mozrepl(object):
 		del self._telnet
 	
 	def __exit__(self, type, value, traceback):
-		self.close()
+		self.disconnect()
 	
 	def for_(self, command, var):
 		"""
@@ -107,8 +110,14 @@ class Mozrepl(object):
 		if re.match(r'\d+$', respon):
 			return int(respon)
 		
+		#object
+		match = re.match('\[object (.+?)\]', respon)
+		if match:
+			#Object()
+			return respon
+		
 		#string
-		match = re.match(r'"(.*?)"', respon)
+		match = re.match(r'^"(.*)"$', respon)
 		if match:
 			buffer = match.group(1)
 			buffer = re.sub(r'\\(.)', r'\1', buffer)

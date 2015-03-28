@@ -19,7 +19,7 @@ pymozrepl는 Firefox MozREPL Add-on에 접근하기 위한 인터페이스를 �
     :target: https://pypi.python.org/pypi/mozrepl/
     :alt: License
 
-ufp 모듈을 설치하려면 :doc:`설치 <installation>` 문서를 참조하십시오. 소스 코드를 다운 받거나 개발에 참여하려면 다음 페이지를 보십시오: https://github.com/Thestars3/pymozrepl.
+mozrepl 모듈을 설치하려면 :doc:`설치 <installation>` 문서를 참조하십시오. 소스 코드를 다운 받거나 개발에 참여하려면 다음 페이지를 보십시오: https://github.com/Thestars3/pymozrepl.
 
 .. toctree::
    :maxdepth: 2

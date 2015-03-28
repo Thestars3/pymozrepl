@@ -31,14 +31,19 @@
 사용 예
 -------------------
 
-주어진 경로에서 유일한 경로를 생성하기
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+먼저, mozrepl Firefox Add-on을 `addons.mozilla.org <https://addons.mozilla.org/en-US/firefox/addon/mozrepl/>`_ 로 부터 설치한뒤, 서버를 시작합니다.
 
 .. code-block:: python
 
 	>>> import mozrepl
-	>>> repl = mozrepl.connect()
-	>>> repl.
+	>>> repl = mozrepl.Mozrepl()
+	>>> repl.execute('repl.whereAmI()')
+	[object ChromeWindow] - Document title: "Firefox"
+	>>> repl.execute('10')
+	10
+	>>> import mozrepl.util
+	>>> mozrepl.util.getCookiesFromHost('.cpan.org').next()
+	Cookie(version=0, name=u'css', value ...
 
 도움말
 -------------------
