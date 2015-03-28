@@ -5,9 +5,11 @@ from __future__ import unicode_literals, absolute_import, division, print_functi
 import sys
 import re
 import telnetlib
+import uuid
 
 from .exception import Exception as MozException
-#from .object import Object
+from .object import Object
+from .function import Function
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242
@@ -46,6 +48,14 @@ class Mozrepl(object):
 		self._telnet = telnetlib.Telnet(self.host, self.port)
 		match = self._telnet.expect([self._RE_PROMPT], 10)[1]
 		self.prompt = match.group(0)
+		
+		self._baseVarname = '__mozrepl_' + uuid.uuid4().hex
+		self.execute("""\
+			var %(_baseVarname)s = Object(); 
+			%(_baseVarname)s.ref = Object();
+			""" % vars(self),
+			'noreturn')
+		pass
 	
 	def __enter__(self):
 		return self
@@ -72,19 +82,26 @@ class Mozrepl(object):
 			self.console('let %(var)s = iter[%(i)s]' % locals())
 			yield i
 	
-	def execute(self, command):
+	def execute(self, command, type='parse'):
 		"""
 		명령을 실행합니다.
 		
 		:param command: 명령.
 		:type command: unicode
+		:param type: \n
+			parse : 반환받은 결과를 파싱함.\n
+			repr : 반환받은 결과를 그대로 반환.\n
+			noreturn : 반환받는 결과가 없음(for문을 쓰는 등, 반환결과가 없는 경우 발생하는 문법 오류를 회피하기 위한 설정).
 		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
 		:returns: int : mozrepl Firefox Add-on에서 반환받은 값이 정수인 경우.
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값이 문자열인 경우.
-		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 응답 받은 값을 그대로 반환합니다.
+		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
-		self._telnet.write(command.encode('utf8') + b';\n') #전송
+		if type == 'noreturn':
+			self._telnet.write("{0};\n".format(command).encode('utf8')) #전송
+		else:
+			self._telnet.write("{0}.lastExecVar = {1};\n".format(self._baseVarname, command).encode('utf8')) #전송
 		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
 		
 		#아무 응답도 없을 경우 None을 반환
@@ -102,6 +119,14 @@ class Mozrepl(object):
 			details = match.group(3)
 			raise MozException(typeName, summary, details)
 		
+		# 응답받는 결과가 없는 경우
+		if type == 'noreturn':
+			return None
+		
+		#그대로 반환
+		if type == 'repr':
+			return respon
+		
 		#bool
 		if respon in ['false', 'true']:
 			return respon == 'true'
@@ -113,14 +138,25 @@ class Mozrepl(object):
 		#object
 		match = re.match('\[object (.+?)\]', respon)
 		if match:
-			#Object()
-			return respon
+			uuid_ = '_' + uuid.uuid4().hex
+			self.execute('{0}.ref.{1} = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
+			return Object(self, uuid_)
+		
+		#function
+		if re.match('function\(\) \{\.{3}\}$', respon):
+			uuid_ = '_' + uuid.uuid4().hex
+			self.execute('{0}.ref.{1} = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
+			return Function(self, uuid_)
 		
 		#string
-		match = re.match(r'^"(.*)"$', respon)
+		match = re.match(r'"(.*)"$', respon)
 		if match:
 			buffer = match.group(1)
 			buffer = re.sub(r'\\(.)', r'\1', buffer)
 			return buffer
+		
+		#array
+		if re.match(r'.+? - \{\d+: .+?(, \d+: .+?)*(, \.{3})?\}$', respon):
+			return respon
 		
 		return respon

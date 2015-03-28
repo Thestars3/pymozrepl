@@ -1,7 +1,7 @@
 ﻿소개
 ===============
 
-**pymozrepl. Firefox MozREPL Add-on에 접근하기 위한 인터페이스를 제공합니다.**
+**pymozrepl는 Firefox MozREPL Add-on에 접근하기 위한 Python Interface를 제공합니다.**
 
 .. image:: https://pypip.in/version/mozrepl/badge.png?text=version
     :target: https://pypi.python.org/pypi/mozrepl/

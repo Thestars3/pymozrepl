@@ -11,3 +11,13 @@
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. autoclass:: mozrepl.Object
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: mozrepl.Function
+    :members:
+    :undoc-members:
+    :show-inheritance:

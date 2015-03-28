@@ -1,6 +1,13 @@
 ﻿변경사항
 ==============
 
+v0.1a3
+------
+
++ Mozrepl.execute 메소드에 type옵션을 추가함. [`tb69wn6127`_]
++ Mozrepl.execute 메소드에서 object타입을 처리하도록 수정. [`tb69wn6127`_]
++ Mozrepl.execute 메소드에서 function타입을 처리하도록 수정. [`tb69wn6127`_]
+
 v0.1a2
 ------
 
