@@ -1,4 +1,4 @@
-타입
+type
 ===========
 
 .. autoclass:: mozrepl.type.Object

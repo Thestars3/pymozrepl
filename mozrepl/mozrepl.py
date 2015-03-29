@@ -7,7 +7,7 @@ import re
 import telnetlib
 import uuid
 
-from . import Exception as MozException
+from .exception import Exception as MozException
 from .type import Object, Function
 
 DEFAULT_HOST = '127.0.0.1'
@@ -55,6 +55,9 @@ class Mozrepl(object):
 			""" % vars(self),
 			'noreturn')
 		pass
+	
+	def __repr__(self):
+		return 'Mozrepl(port={0}, host={1})'.format(repr(self.port), repr(self.host))
 	
 	def __enter__(self):
 		return self

@@ -4,7 +4,7 @@
 from __future__ import absolute_import
 
 __title__ = 'mozrepl'
-__version__ = '0.1a5'
+__version__ = '0.1a6'
 __author__ = '별님'
 __author_email__ = 'w7dn1ng75r@gmail.com'
 __license__ = 'GPL v3'

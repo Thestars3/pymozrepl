@@ -1,6 +1,17 @@
 ﻿변경사항
 ==============
 
+v0.1a6
+------
+
++ mozrepl.Mozrepl에 __repr__ 메소드를 구현. [`tb69wn6127`_]
++ mozrepl.type.Object에서 발생하던 'ReferenceError: x is not defined' 오류 수정. [`tb69wn6127`_]
++ mozrepl.util.convertToJs 함수를 추가. [`tb69wn6127`_]
++ mozrepl.type.Function의 __call__ 메소드를 개선함. [`tb69wn6127`_]
+	+ 함수 및 오브젝트를 전달 가능해짐. [`tb69wn6127`_]
+	+ 문자열에 \'문자가 포함되어 있을 경우를 처리함. [`tb69wn6127`_]
+	+ int, None, float, str, mozrepl.type.Object 등의 형식을 인자로 줄 수 있도록 수정. [`tb69wn6127`_]
+
 v0.1a5
 ------
 

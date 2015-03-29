@@ -4,10 +4,13 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 from ..exception import Exception as MozException
+from ..util import convertToJs
 
 class Object(object):
 	"""
-	만약, 자바스크립트 오브젝트의 __dict__ 또는 reference란 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오.
+	만약, 자바스크립트 오브젝트의 __dict__ 또는 reference란 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오. 그 외에는 모두 속성을 호출하듯이 접근할 수 있습니다.
+	
+	Iterator는 내부적으로, 자바스크립트의 Iterator 오브젝트를 사용합니다. 만약 해당 오브젝트에 Iterator가 구현되지 않았다면, 반환 결과는 Iterator의 구현을 따릅니다.
 	
 	..
 	   자바 스크립트의 오브젝트는 파이썬의 사전과 유사하다.
@@ -26,7 +29,7 @@ class Object(object):
 		"""
 		자바스크립트에서 이 오브젝트에 대한 참조값.
 		
-		만약, 직접 이 오브젝트에 대해 접근하기를 원한다면, 이 속성을 통해 변수 이름을 얻을 수 있습니다. 예컨데, 다음과 같이 사용 할 수 있습니다.
+		만약, 자바스크립트에서 직접 이 오브젝트에 대해 접근하기를 원한다면, 이 속성을 통해 변수 이름을 얻을 수 있습니다. 예컨데, 다음과 같이 사용 할 수 있습니다.
 		
 		.. code-block:: python
 		
@@ -35,12 +38,13 @@ class Object(object):
 			>>> obj = repl.execute('repl')
 			>>> obj.reference
 			u'__pymozrepl_fff55ff4a14b4ab28016fabe2ab28474.ref._373fbcd206ae4e378cff7666995324bb'
+			>>> repl.execute('var value = ' + obj.reference)
 		"""
 		return '{0}.ref.{1}'.format(self._repl._baseVarname, self._uuid)
 	
 	def __getattr__(self, name):
 		return self[name]
-		
+	
 	def __setattr__(self, name, value):
 		self[name] = value
 	
@@ -60,11 +64,11 @@ class Object(object):
 		return self._repl.execute(self.reference, 'repr')
 	
 	def __getitem__(self, key):
-		return self._repl.execute('{0}[{1}]'.format(self.reference, key))
+		return self._repl.execute('{0}[{1}]'.format(self.reference, convertToJs(key)))
 	
 	def __setitem__(self, key, value):
-		self._repl.execute('{0}[{1}] = {2}'.format(self.reference, key, value), 'noreturn')
+		self._repl.execute('{0}[{1}] = {2}'.format(self.reference, convertToJs(key), value), 'noreturn')
 	
 	def __delitem__(self, key):
-		self._repl.execute('delete {0}[{1}]'.format(self.reference, key), 'noreturn')
+		self._repl.execute('delete {0}[{1}]'.format(self.reference, convertToJs(key)), 'noreturn')
 	
