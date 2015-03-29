@@ -1,6 +1,11 @@
 ﻿변경사항
 ==============
 
+v0.1a7
+------
+
++ mozrepl.type.Function에서 발생하던 'TypeError: context is undefined' 오류를 수정. [`tb69wn6127`_]
+
 v0.1a6
 ------
 

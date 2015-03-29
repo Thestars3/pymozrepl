@@ -19,14 +19,10 @@ class Function(Object):
 	def __call__(self, *args, **kwargs):
 		"""
 		내부에서 :py:function:`~mozrepl.util.convertToJs` 함수를 호출하여 처리합니다. 입력하는 각 인자는 이 함수에서 허용하는 형식을 준수해야 합니다.
-		
-		:todo: 
-			+ mozrepl.type.Function에서 발생하던 'TypeError: context is undefined' 오류를 수정. [`tb69wn6127`_]
 		"""
 		v = list()
 		for i in itertools.chain(args, kwargs.values()):
 			type
 		buffer = '{0}({1})'.format(self.reference, ','.join(v))
-		print(buffer)
 		return self._repl.execute(buffer)
 	

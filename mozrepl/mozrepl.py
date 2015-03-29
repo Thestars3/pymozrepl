@@ -9,6 +9,7 @@ import uuid
 
 from .exception import Exception as MozException
 from .type import Object, Function
+from .util import convertToJs, convertToCmd
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242
@@ -50,7 +51,7 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_' + uuid.uuid4().hex
 		self.execute("""\
-			var %(_baseVarname)s = Object(); 
+			%(_baseVarname)s = Object(); 
 			%(_baseVarname)s.ref = Object();
 			""" % vars(self),
 			'noreturn')
@@ -73,10 +74,13 @@ class Mozrepl(object):
 	def __exit__(self, type, value, traceback):
 		self.disconnect()
 	
-	def _convRtype(self, respon):
+	def _convRtype(self, respon, command):
 		"""
 		undefined, null값은 반환받는 결과가 존재하지 않아, 자동으로 None값이 리턴되었음. 따라서, 처리에서 생략함.
 		array는 오브젝트이므로, 별도의 처리를 하지 않음. 별도로 처리한다면, 값을 copy하는 객체를 만들어 처리 할 것.
+		
+		:todo: function 타입 처리시, 부모 오브젝트를 찾아야 한다. 함수에서 부모 오브젝트를 찾는건 불가능하므로, 입력받은 명령을 분석하여 부모를 찾아야 한다. 이를 좀더 매끄럽게 해야한다.
+		:todo: object 타입 처리시, 부모 오브젝트를 찾아야 묶어야 한다.
 		"""
 		#boolean
 		if respon in ['false', 'true']:
@@ -101,14 +105,19 @@ class Mozrepl(object):
 		
 		#object
 		if type == 'object':
-			uuid_ = '_' + uuid.uuid4().hex
-			self.execute('{0}.ref.{1} = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
+			uuid_ = unicode(uuid.uuid4())
+			self.execute('{0}.ref["{1}"] = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
 			return Object(self, uuid_)
 		
 		#function
 		if type == 'function':
-			uuid_ = '_' + uuid.uuid4().hex
-			self.execute('{0}.ref.{1} = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
+			uuid_ = unicode(uuid.uuid4())
+			match = re.search('(\S+?)(\.[^.]+|\[.+?\])\s*$', command)
+			if match:
+				context = match.group(1)
+			else:
+				context = 'this'
+			self.execute('{0}.ref["{1}"] = {0}.lastExecVar.bind({2})'.format(self._baseVarname, uuid_, context), 'noreturn')
 			return Function(self, uuid_)
 		
 		return respon
@@ -118,7 +127,7 @@ class Mozrepl(object):
 		명령을 실행합니다.
 		
 		:param command: 명령.
-		:type command: unicode
+		:type command: :py:function:`~mozrepl.util.convertToCmd`에서 허용하는 형식.
 		:param type: \n
 			parse : 반환받은 결과를 파싱함.\n
 			repr : 반환받은 결과를 그대로 반환.\n
@@ -131,6 +140,7 @@ class Mozrepl(object):
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
+		command = convertToCmd(command)
 		if type in ['noreturn', 'nolastcmd']:
 			self._telnet.write("{0};\n".format(command).encode('utf8')) #전송
 		else:
@@ -162,5 +172,5 @@ class Mozrepl(object):
 			return respon
 		
 		#변환
-		return self._convRtype(respon)
+		return self._convRtype(respon, command)
 	

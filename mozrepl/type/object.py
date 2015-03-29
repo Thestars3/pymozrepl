@@ -37,10 +37,10 @@ class Object(object):
 			>>> repl = mozrepl.Mozrepl()
 			>>> obj = repl.execute('repl')
 			>>> obj.reference
-			u'__pymozrepl_fff55ff4a14b4ab28016fabe2ab28474.ref._373fbcd206ae4e378cff7666995324bb'
+			u'__pymozrepl_c8d7323280c54d09809e2dd7d34d1c70.ref["1e1c7ae3-c1fc-4664-b57f-1281bdc1c996"]'
 			>>> repl.execute('var value = ' + obj.reference)
 		"""
-		return '{0}.ref.{1}'.format(self._repl._baseVarname, self._uuid)
+		return '{0}.ref["{1}"]'.format(self._repl._baseVarname, self._uuid)
 	
 	def __getattr__(self, name):
 		return self[name]
