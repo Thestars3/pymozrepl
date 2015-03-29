@@ -1,4 +1,4 @@
-멤버들
+타입
 ===========
 
 .. autoclass:: mozrepl.type.Object

@@ -34,7 +34,7 @@ class Object(object):
 			>>> repl = mozrepl.Mozrepl()
 			>>> obj = repl.execute('repl')
 			>>> obj.reference
-			u''
+			u'__pymozrepl_fff55ff4a14b4ab28016fabe2ab28474.ref._373fbcd206ae4e378cff7666995324bb'
 		"""
 		return '{0}.ref.{1}'.format(self._repl._baseVarname, self._uuid)
 	
@@ -50,7 +50,7 @@ class Object(object):
 	def __iter__(self):
 		self._repl.execute('{0}.buffer = Iterator({1}, true)'.format(self._repl._baseVarname, self.reference), 'noreturn')
 		try:
-			yield self._repl.execute('{0}.buffer.next()'.format(self._repl._baseVarname, self.reference))
+			yield self._repl.execute('{0}.buffer.next()'.format(self._repl._baseVarname))
 		except MozException, e:
 			if e.typeName == 'StopIteration':
 				raise StopIteration
@@ -60,11 +60,11 @@ class Object(object):
 		return self._repl.execute(self.reference, 'repr')
 	
 	def __getitem__(self, key):
-		return self._repl.execute('{0}.{1}'.format(self.reference, key))
+		return self._repl.execute('{0}[{1}]'.format(self.reference, key))
 	
 	def __setitem__(self, key, value):
-		self._repl.execute('{0}.{1} = {2}'.format(self.reference, key, value), 'noreturn')
+		self._repl.execute('{0}[{1}] = {2}'.format(self.reference, key, value), 'noreturn')
 	
 	def __delitem__(self, key):
-		self._repl.execute('delete {0}.{1}'.format(self.reference, key), 'noreturn')
+		self._repl.execute('delete {0}[{1}]'.format(self.reference, key), 'noreturn')
 	

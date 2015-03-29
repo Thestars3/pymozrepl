@@ -3,5 +3,5 @@
 
 from __future__ import absolute_import
 
-from .function import Function
 from .object import Object
+from .function import Function

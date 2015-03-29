@@ -1,6 +1,14 @@
 ﻿변경사항
 ==============
 
+v0.1a5
+------
+
++ mozrepl.type.Function에서 발생하던 'TypeError: must be type, not Function' 오류를 수정. [`tb69wn6127`_]
++ mozrepl.Mozrepl.for_ 메소드를 제거. [`tb69wn6127`_]
++ mozrepl.Mozrepl.execute 메소드에서 빈 Array와 같은 오브젝트도 정상적으로 처리하지 못하던 점 수정. [`tb69wn6127`_]
++ mozrepl.type.Object에서 숫자를 통해 원소에 접근하고자 할때, 응답을 하지 않던 문제 수정. [`tb69wn6127`_]
+
 v0.1a4
 ------
 
