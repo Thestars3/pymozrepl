@@ -1,13 +1,13 @@
 멤버들
 ===========
 
-.. autoclass:: mozrepl.Mozrepl
+.. autoclass:: mozrepl.type.Object
     :members:
-    :special-members: __init__
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: mozrepl.Exception
+.. autoclass:: mozrepl.type.Function
     :members:
+    :special-members: __call__
     :undoc-members:
     :show-inheritance:

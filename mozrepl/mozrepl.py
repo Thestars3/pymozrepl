@@ -8,8 +8,7 @@ import telnetlib
 import uuid
 
 from .exception import Exception as MozException
-from .object import Object
-from .function import Function
+from .type import Object, Function
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242
@@ -94,6 +93,7 @@ class Mozrepl(object):
 			noreturn : 반환받는 결과가 없음(for문을 쓰는 등, 반환결과가 없는 경우 발생하는 문법 오류를 회피하기 위한 설정).
 		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
 		:returns: int : mozrepl Firefox Add-on에서 반환받은 값이 정수인 경우.
+		:returns: float : mozrepl Firefox Add-on에서 반환받은 값이 실수인 경우.
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값이 문자열인 경우.
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
@@ -135,6 +135,10 @@ class Mozrepl(object):
 		if re.match(r'\d+$', respon):
 			return int(respon)
 		
+		#float
+		if re.match(r'\d+\.\d+$', respon):
+			return float(respon)
+		
 		#object
 		match = re.match('\[object (.+?)\]', respon)
 		if match:
@@ -152,7 +156,7 @@ class Mozrepl(object):
 		match = re.match(r'"(.*)"$', respon)
 		if match:
 			buffer = match.group(1)
-			buffer = re.sub(r'\\(.)', r'\1', buffer)
+			#buffer = re.sub(r'\\(.)', r'\1', buffer) # repl.js 에서 별도의 콰우팅을 수행하고 있지 않았음.
 			return buffer
 		
 		#array

@@ -3,11 +3,11 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 
-from .exception import Exception as MozException
+from ..exception import Exception as MozException
 
 class Object(object):
 	"""
-	만약, 이름 공간이 충돌한다면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오.
+	만약, 자바스크립트 오브젝트의 __dict__ 또는 reference란 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오.
 	
 	..
 	   자바 스크립트의 오브젝트는 파이썬의 사전과 유사하다.
@@ -22,7 +22,20 @@ class Object(object):
 		self.__dict__['_uuid'] = uuid
 	
 	@property
-	def _rep(self):
+	def reference(self):
+		"""
+		자바스크립트에서 이 오브젝트에 대한 참조값.
+		
+		만약, 직접 이 오브젝트에 대해 접근하기를 원한다면, 이 속성을 통해 변수 이름을 얻을 수 있습니다. 예컨데, 다음과 같이 사용 할 수 있습니다.
+		
+		.. code-block:: python
+		
+			>>> import mozrepl
+			>>> repl = mozrepl.Mozrepl()
+			>>> obj = repl.execute('repl')
+			>>> obj.reference
+			u''
+		"""
 		return '{0}.ref.{1}'.format(self._repl._baseVarname, self._uuid)
 	
 	def __getattr__(self, name):
@@ -35,23 +48,23 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		self._repl.execute('{0}.buffer = Iterator({1}, true)'.format(self._repl._baseVarname, self._rep), 'noreturn')
+		self._repl.execute('{0}.buffer = Iterator({1}, true)'.format(self._repl._baseVarname, self.reference), 'noreturn')
 		try:
-			yield self._repl.execute('{0}.buffer.next()'.format(self._repl._baseVarname, self._rep))
+			yield self._repl.execute('{0}.buffer.next()'.format(self._repl._baseVarname, self.reference))
 		except MozException, e:
 			if e.typeName == 'StopIteration':
 				raise StopIteration
 			raise e
 	
 	def __repr__(self):
-		return self._repl.execute(self._rep, 'repr')
+		return self._repl.execute(self.reference, 'repr')
 	
 	def __getitem__(self, key):
-		return self._repl.execute('{0}.{1}'.format(self._rep, key))
+		return self._repl.execute('{0}.{1}'.format(self.reference, key))
 	
 	def __setitem__(self, key, value):
-		self._repl.execute('{0}.{1} = {2}'.format(self._rep, key, value), 'noreturn')
+		self._repl.execute('{0}.{1} = {2}'.format(self.reference, key, value), 'noreturn')
 	
 	def __delitem__(self, key):
-		self._repl.execute('delete {0}.{1}'.format(self._rep, key), 'noreturn')
+		self._repl.execute('delete {0}.{1}'.format(self.reference, key), 'noreturn')
 	

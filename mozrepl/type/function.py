@@ -4,10 +4,17 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 import itertools
 
-class Function():
+from .object import Object
+
+class Function(Object):
+	"""
+	자바스크립트 함수.
+	"""
 	def __init__(self, repl, uuid):
-		self._uuid = uuid
-		self._repl = repl
+		super(self, Object).__init__(repl, uuid)
+	
+	def __repr__(self):
+		return 'function() {...}'
 	
 	def __call__(self, *args, **kwargs):
 		"""
@@ -24,4 +31,4 @@ class Function():
 				v.append(repr(str(i)))
 		buffer = '{0}({1})'.format(buffer, ','.join(v))
 		return self._repl.execute(buffer)
-		
+	
