@@ -11,7 +11,7 @@ def convertToJs(arg):
 	입력받은 값을 javascript에서 사용 가능한 값으로 변환합니다.
 	
 	:param arg: 변환할 값
-	:type arg: int, float, None, unicode, bytes, str, :py:class:`~mozrepl.type.Object`, :py:class:`~mozrepl.type.Function`
+	:type arg: int, float, None, unicode, bytes, str, :py:class:`~mozrepl.type.Object`, :py:class:`~mozrepl.type.Function`, :py:class:`~mozrepl.type.Array`
 	:return: javascript에서 사용 할 수 있는 값.
 	:rtype: unicode
 	"""
@@ -27,6 +27,7 @@ def convertToJs(arg):
 	if isinstance(arg, str):
 		return repr(arg)
 	
+	from ..type import Object
 	if isinstance(arg, Object):
 		return arg.reference
 	

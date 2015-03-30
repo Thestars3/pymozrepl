@@ -9,7 +9,9 @@ from ..util import convertToJs
 
 class Object(object):
 	"""
-	만약, 자바스크립트 오브젝트의 __dict__ 또는 reference란 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오. 그 외에는 모두 속성을 호출하듯이 접근할 수 있습니다.
+	만약, 이 객체에 존재하는 속성의 이름과 같은 자바스크립트 오브젝트의 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오. 그 외에는 모두 속성을 호출하듯이 접근할 수 있습니다.
+	
+	__eq__, __contains__, __iter__ 메소드가 구현되어 있습니다.
 	
 	Iterator는 내부적으로, 자바스크립트의 Iterator 오브젝트를 사용합니다. 만약 해당 오브젝트에 Iterator가 구현되지 않았다면, 반환 결과는 Iterator의 구현을 따릅니다.
 	
@@ -43,6 +45,12 @@ class Object(object):
 		"""
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
+	def __eq__(self, other):
+		return self._repl.execute('{other} == {reference}'.format(other=convertToJs(other), reference=self.reference))
+	
+	def __contains__(self, item):
+		return self._repl.execute('{item} in {reference}'.format(item=convertToJs(item), reference=self.reference))
+	
 	def __getattr__(self, name):
 		return self[name]
 	
@@ -56,7 +64,8 @@ class Object(object):
 		self._repl.execute('{baseVar}.buffer = Iterator({reference}, true)'.format(baseVar=self._repl._baseVarname, reference=self.reference), 'noreturn')
 		while True:
 			try:
-				yield self._repl.execute('{baseVar}.buffer.next()'.format(baseVar=self._repl._baseVarname))
+				value = self._repl.execute('{baseVar}.buffer.next()'.format(baseVar=self._repl._baseVarname))
+				yield tuple(value) if isinstance(value, Array) else value
 			except MozException, e:
 				if e.typeName == 'StopIteration':
 					raise StopIteration
@@ -75,3 +84,8 @@ class Object(object):
 	def __delitem__(self, key):
 		self._repl.execute('delete {reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)), 'noreturn')
 	
+	def __del__(self):
+		self._repl.execute('delete {reference}'.format(reference=self.reference), 'noreturn')
+	
+
+from .array import Array

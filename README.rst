@@ -39,8 +39,10 @@
 	>>> repl = mozrepl.Mozrepl()
 	>>> repl.execute('repl.whereAmI()')
 	[object ChromeWindow] - Document title: "Firefox"
-	>>> repl.execute('10')
-	10
+	>>> list(repl.execute(u'["a", 1, 2, 3, 4]'))
+	[u'a', 1, 2, 3, 4]
+	>>> repl.execute('content').document.title
+	u'pymozrepl \\u2014 mozrepl 0.1a8 documentation'
 	>>> import mozrepl.util
 	>>> mozrepl.util.getCookiesFromHost('.cpan.org').next()
 	Cookie(version=0, name=u'css', value ...

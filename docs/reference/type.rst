@@ -11,3 +11,8 @@ type
     :special-members: __call__
     :undoc-members:
     :show-inheritance:
+
+.. autoclass:: mozrepl.type.Array
+    :members:
+    :undoc-members:
+    :show-inheritance:
