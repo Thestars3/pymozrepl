@@ -17,7 +17,7 @@ DEFAULT_PORT = 4242
 
 class Mozrepl(object):
 	"""
-	모질라 파이어폭스에서 REPL 확장 프로그램을 실행한 뒤 사용하십시오.
+	Firefox MozREPL Add-on에 대한 인터페이스를 제공하는 클래스.
 	
 	with 구문을 지원합니다.
 	
@@ -51,11 +51,10 @@ class Mozrepl(object):
 		self.prompt = match.group(0)
 		
 		self._baseVarname = '__pymozrepl_' + uuid.uuid4().hex
-		self.execute("""\
+		self._rawExecute("""\
 			{baseVar} = Object(); 
 			{baseVar}.ref = Object();
-			""".format(baseVar=self._baseVarname),
-			'noreturn'
+			""".format(baseVar=self._baseVarname)
 			)
 		pass
 	
@@ -76,7 +75,7 @@ class Mozrepl(object):
 	def __exit__(self, type, value, traceback):
 		self.disconnect()
 	
-	def _convRtype(self, respon, command):
+	def _convertMozreplResonToPyStruct(self, respon, command):
 		"""
 		undefined, null값은 반환받는 결과가 존재하지 않아, 자동으로 None값이 리턴되었음. 따라서, 처리에서 생략함.
 		array는 오브젝트이므로, 별도의 처리를 하지 않음. 별도로 처리한다면, 값을 copy하는 객체를 만들어 처리 할 것.
@@ -103,61 +102,55 @@ class Mozrepl(object):
 			#buffer = re.sub(r'\\(.)', r'\1', buffer) # repl.js 에서 별도의 콰우팅을 수행하고 있지 않았음.
 			return buffer
 		
-		type = self.execute("typeof {baseVar}.lastExecVar".format(baseVar=self._baseVarname), 'nolastcmd')
-		
 		#function
-		if type == 'function':
+		if respon == 'function() {...}':
 			uuid_ = unicode(uuid.uuid4())
 			match = re.search('(\S+?)(\.[^.]+|\[.+?\])\s*$', command)
 			if match:
 				context = match.group(1)
 			else:
 				context = 'this'
-			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context))
 			return Function(self, uuid_)
 		
+		type = self.execute("typeof {baseVar}.lastExecVar".format(baseVar=self._baseVarname))
+		
 		#array
-		if type == 'object' and self.execute('Array.isArray({baseVar}.lastExecVar)'.format(baseVar=self._baseVarname), 'nolastcmd'):
+		if type == 'object' and self.execute('Array.isArray({baseVar}.lastExecVar)'.format(baseVar=self._baseVarname)):
 			uuid_ = unicode(uuid.uuid4())
 			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {context}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
-			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_), 'noreturn')
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_))
 			return Array(self, uuid_)
 		
 		#object
 		if type == 'object':
 			uuid_ = unicode(uuid.uuid4())
 			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {baseVar}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
-			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_), 'noreturn')
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_))
 			return Object(self, uuid_)
 		
 		return respon
 	
-	def execute(self, command, type='parse'):
+	def _rawExecute(self, command):
 		"""
-		명령을 실행합니다.
+		명령을 실행합니다. 
+		
+		execute 메소드와 달리 명령을 분석하지 않고, Firefox MozREPL Add-on에서 반환받은 문자열을 그대로 반환합니다.
 		
 		:param command: 명령.
 		:type command: unicode
-		:param type: \n
-			parse : 반환받은 결과를 파싱함.\n
-			repr : 반환받은 결과를 그대로 반환.\n
-			noreturn : 반환받는 결과가 없음(for문을 쓰는 등, 반환결과가 없는 경우 발생하는 문법 오류를 회피하기 위한 설정).\n
-			nolastcmd : 마지막으로 실행한 변수의 값을 저장하는 기능을 비활성화시킴.
-		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
-		:returns: int : mozrepl Firefox Add-on에서 반환받은 값이 정수인 경우.
-		:returns: float : mozrepl Firefox Add-on에서 반환받은 값이 실수인 경우.
-		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값이 문자열인 경우.
-		:returns: :py:class:`~mozrepl.type.Object` : mozrepl Firefox Add-on에서 반환받은 값이 object인 경우.
-		:returns: :py:class:`~mozrepl.type.Array` : mozrepl Firefox Add-on에서 반환받은 값이 array인 경우.
-		:returns: :py:class:`~mozrepl.type.Function` : mozrepl Firefox Add-on에서 반환받은 값이 function인 경우.
-		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
-		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
+		:return: Firefox MozREPL Add-on에서 반환받은 문자열을 정리한 문자열.
+		:return: Firefox MozREPL Add-on에서 응답이 없는 경우 None을 반환.
+		:rtype: unicode
 		"""
-		if type in ['noreturn', 'nolastcmd']:
-			self._telnet.write("{command};\n".format(command=command).encode('utf8')) #전송
-		else:
-			self._telnet.write("{baseVar}.lastExecVar = {command};\n".format(baseVar=self._baseVarname, command=command).encode('utf8')) #전송
-		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
+		#전송
+		buffer = "{command};\n".format(command=command)
+		buffer = buffer.encode('utf8')
+		self._telnet.write(buffer)
+		
+		#수신
+		buffer = self._telnet.read_until(self.prompt)
+		respon = buffer.decode('utf8')
 		
 		#아무 응답도 없을 경우 None을 반환
 		if re.search('^ %(prompt)s$' % vars(self), respon):
@@ -177,14 +170,41 @@ class Mozrepl(object):
 			details = groupdict['details']
 			raise MozException(typeName, summary, details)
 		
-		#응답받는 결과가 없는 경우
-		if type == 'noreturn':
+		return respon
+	
+	def execute(self, command):
+		"""
+		명령을 실행합니다.
+		
+		:param command: 명령.
+		:type command: unicode
+		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
+		:returns: int : mozrepl Firefox Add-on에서 반환받은 값이 정수인 경우.
+		:returns: float : mozrepl Firefox Add-on에서 반환받은 값이 실수인 경우.
+		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값이 문자열인 경우.
+		:returns: :py:class:`~mozrepl.type.Object` : mozrepl Firefox Add-on에서 반환받은 값이 object인 경우.
+		:returns: :py:class:`~mozrepl.type.Array` : mozrepl Firefox Add-on에서 반환받은 값이 array인 경우.
+		:returns: :py:class:`~mozrepl.type.Function` : mozrepl Firefox Add-on에서 반환받은 값이 function인 경우.
+		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
+		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
+		"""
+		#명령이 결과를 반환하는가를 검사
+		isHaveRespon = True
+		command = command.strip()
+		if re.match(r'(//.*$|/\*.*?\*/)?\s*(for|while)\s+', command):
+			isHaveRespon = False
+		
+		#명령을 mozrepl 서버에 전송
+		if isHaveRespon:
+			buffer = "{baseVar}.lastExecVar = {command}".format(baseVar=self._baseVarname, command=command)
+		else:
+			buffer = command
+		respon = self._rawExecute(buffer)
+		
+		if respon is None:
 			return None
 		
-		#그대로 반환
-		if type == 'repr':
-			return respon
-		
-		#변환
-		return self._convRtype(respon, command)
+		if isHaveRespon:
+			return self._convertMozreplResonToPyStruct(respon, command) #변환
+		pass
 	

@@ -63,7 +63,7 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		self._repl.execute('{baseVar}.buffer = Iterator({reference}, true)'.format(baseVar=self._repl._baseVarname, reference=self.reference), 'noreturn')
+		self._repl._rawExecute('{baseVar}.buffer = Iterator({reference}, true)'.format(baseVar=self._repl._baseVarname, reference=self.reference))
 		while True:
 			try:
 				value = self._repl.execute('{baseVar}.buffer.next()'.format(baseVar=self._repl._baseVarname))
@@ -72,22 +72,22 @@ class Object(object):
 				if e.typeName == 'StopIteration':
 					raise StopIteration
 				raise e
-		raise StopIteration
+		pass
 	
 	def __repr__(self):
-		return self._repl.execute(self.reference, 'repr')
+		return self._repl._rawExecute(self.reference)
 	
 	def __getitem__(self, key):
 		return self._repl.execute('{reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
 	
 	def __setitem__(self, key, value):
-		self._repl.execute('{reference}[{key}] = {value}'.format(reference=self.reference, key=convertToJs(key), value=value), 'noreturn')
+		self._repl._rawExecute('{reference}[{key}] = {value}'.format(reference=self.reference, key=convertToJs(key), value=value))
 	
 	def __delitem__(self, key):
-		self._repl.execute('delete {reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)), 'noreturn')
+		self._repl._rawExecute('delete {reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
 	
 	def __del__(self):
-		self._repl.execute('delete {reference}'.format(reference=self.reference), 'noreturn')
+		self._repl._rawExecute('delete {reference}'.format(reference=self.reference))
 	
 
 from .array import Array
