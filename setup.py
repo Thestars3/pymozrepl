@@ -40,7 +40,7 @@ setup(
 	description      = 'Firefox MozREPL Add-on에 접근하기 위한 인터페이스를 제공합니다.',
 	packages         = [
 			'mozrepl',
-			'mozrepl.util'
+			'mozrepl.type'
 		],
     package_dir      = {'mozrepl': 'mozrepl'},
     package_data     = {
