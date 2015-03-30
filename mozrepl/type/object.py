@@ -2,6 +2,7 @@
 #-*- coding: utf-8 -*-
 
 from __future__ import unicode_literals, absolute_import, division, print_function
+#from ufp.terminal.debug import print_ as debug
 
 from ..exception import Exception as MozException
 from ..util import convertToJs
@@ -40,7 +41,7 @@ class Object(object):
 			u'__pymozrepl_c8d7323280c54d09809e2dd7d34d1c70.ref["1e1c7ae3-c1fc-4664-b57f-1281bdc1c996"]'
 			>>> repl.execute('var value = ' + obj.reference)
 		"""
-		return '{0}.ref["{1}"]'.format(self._repl._baseVarname, self._uuid)
+		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
 	def __getattr__(self, name):
 		return self[name]
@@ -52,23 +53,25 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		self._repl.execute('{0}.buffer = Iterator({1}, true)'.format(self._repl._baseVarname, self.reference), 'noreturn')
-		try:
-			yield self._repl.execute('{0}.buffer.next()'.format(self._repl._baseVarname))
-		except MozException, e:
-			if e.typeName == 'StopIteration':
-				raise StopIteration
-			raise e
+		self._repl.execute('{baseVar}.buffer = Iterator({reference}, true)'.format(baseVar=self._repl._baseVarname, reference=self.reference), 'noreturn')
+		while True:
+			try:
+				yield self._repl.execute('{baseVar}.buffer.next()'.format(baseVar=self._repl._baseVarname))
+			except MozException, e:
+				if e.typeName == 'StopIteration':
+					raise StopIteration
+				raise e
+		raise StopIteration
 	
 	def __repr__(self):
 		return self._repl.execute(self.reference, 'repr')
 	
 	def __getitem__(self, key):
-		return self._repl.execute('{0}[{1}]'.format(self.reference, convertToJs(key)))
+		return self._repl.execute('{reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
 	
 	def __setitem__(self, key, value):
-		self._repl.execute('{0}[{1}] = {2}'.format(self.reference, convertToJs(key), value), 'noreturn')
+		self._repl.execute('{reference}[{key}] = {value}'.format(reference=self.reference, key=convertToJs(key), value=value), 'noreturn')
 	
 	def __delitem__(self, key):
-		self._repl.execute('delete {0}[{1}]'.format(self.reference, convertToJs(key)), 'noreturn')
+		self._repl.execute('delete {reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)), 'noreturn')
 	

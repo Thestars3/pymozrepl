@@ -6,14 +6,28 @@ import exceptions
 
 class Exception(exceptions.Exception):
 	"""
-	mozrepl Firefox Add-on에서 반환한 오류.
-	
-	typeName, summary, details 멤버에 접근하여 오류에 대해 상세히 알 수 있습니다.
+	mozrepl Firefox Add-on에서 반환한 오류에 대한 정보를 담는 클래스.
 	"""
-	def __init__(self, typeName, summary, details=''):
-		self.typeName = typeName
-		self.summary = summary
-		self.details = details
+	def __init__(self, typeName, summary='', details=''):
+		self._typeName = typeName
+		self._summary = summary
+		self._details = details
+	
+	@property
+	def typeName(self):
+		"""타입 이름"""
+		return self._typeName
+	
+	@property
+	def summary(self):
+		"""요약"""
+		return self._summary
+	
+	@property
+	def details(self):
+		"""상세 설명"""
+		return self._details
 	
 	def __str__(self):
-		return '{0}: {1}'.format(self.typeName, self.summary)
+		return '{typeName}: {summary}'.format(typeName=self.typeName, summary=self.summary)
+	

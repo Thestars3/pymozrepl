@@ -23,6 +23,6 @@ class Function(Object):
 		v = list()
 		for i in itertools.chain(args, kwargs.values()):
 			type
-		buffer = '{0}({1})'.format(self.reference, ','.join(v))
+		buffer = '{reference}({args})'.format(reference=self.reference, args=','.join(v))
 		return self._repl.execute(buffer)
 	

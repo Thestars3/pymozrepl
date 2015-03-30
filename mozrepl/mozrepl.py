@@ -6,10 +6,11 @@ import sys
 import re
 import telnetlib
 import uuid
+#from ufp.terminal.debug import print_ as debug
 
 from .exception import Exception as MozException
-from .type import Object, Function
-from .util import convertToJs, convertToCmd
+from .type import Object, Function, Array
+from .util import convertToJs
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242
@@ -51,14 +52,15 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_' + uuid.uuid4().hex
 		self.execute("""\
-			%(_baseVarname)s = Object(); 
-			%(_baseVarname)s.ref = Object();
-			""" % vars(self),
-			'noreturn')
+			{baseVar} = Object(); 
+			{baseVar}.ref = Object();
+			""".format(baseVar=self._baseVarname),
+			'noreturn'
+			)
 		pass
 	
 	def __repr__(self):
-		return 'Mozrepl(port={0}, host={1})'.format(repr(self.port), repr(self.host))
+		return 'Mozrepl(port={port}, host={host})'.format(port=repr(self.port), host=repr(self.host))
 	
 	def __enter__(self):
 		return self
@@ -101,13 +103,7 @@ class Mozrepl(object):
 			#buffer = re.sub(r'\\(.)', r'\1', buffer) # repl.js 에서 별도의 콰우팅을 수행하고 있지 않았음.
 			return buffer
 		
-		type = self.execute("typeof {0}.lastExecVar".format(self._baseVarname), 'nolastcmd')
-		
-		#object
-		if type == 'object':
-			uuid_ = unicode(uuid.uuid4())
-			self.execute('{0}.ref["{1}"] = {0}.lastExecVar'.format(self._baseVarname, uuid_), 'noreturn')
-			return Object(self, uuid_)
+		type = self.execute("typeof {baseVar}.lastExecVar".format(baseVar=self._baseVarname), 'nolastcmd')
 		
 		#function
 		if type == 'function':
@@ -117,8 +113,22 @@ class Mozrepl(object):
 				context = match.group(1)
 			else:
 				context = 'this'
-			self.execute('{0}.ref["{1}"] = {0}.lastExecVar.bind({2})'.format(self._baseVarname, uuid_, context), 'noreturn')
+			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
 			return Function(self, uuid_)
+		
+		#array
+		if type == 'object' and self.execute('Array.isArray({baseVar}.lastExecVar)'.format(baseVar=self._baseVarname), 'nolastcmd'):
+			uuid_ = unicode(uuid.uuid4())
+			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {context}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
+			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_), 'noreturn')
+			return Array(self, uuid_)
+		
+		#object
+		if type == 'object':
+			uuid_ = unicode(uuid.uuid4())
+			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {baseVar}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
+			self.execute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_), 'noreturn')
+			return Object(self, uuid_)
 		
 		return respon
 	
@@ -127,7 +137,7 @@ class Mozrepl(object):
 		명령을 실행합니다.
 		
 		:param command: 명령.
-		:type command: :py:function:`~mozrepl.util.convertToCmd`에서 허용하는 형식.
+		:type command: unicode
 		:param type: \n
 			parse : 반환받은 결과를 파싱함.\n
 			repr : 반환받은 결과를 그대로 반환.\n
@@ -140,11 +150,10 @@ class Mozrepl(object):
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
-		command = convertToCmd(command)
 		if type in ['noreturn', 'nolastcmd']:
-			self._telnet.write("{0};\n".format(command).encode('utf8')) #전송
+			self._telnet.write("{command};\n".format(command=command).encode('utf8')) #전송
 		else:
-			self._telnet.write("{0}.lastExecVar = {1};\n".format(self._baseVarname, command).encode('utf8')) #전송
+			self._telnet.write("{baseVar}.lastExecVar = {command};\n".format(baseVar=self._baseVarname, command=command).encode('utf8')) #전송
 		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
 		
 		#아무 응답도 없을 경우 None을 반환
@@ -156,11 +165,13 @@ class Mozrepl(object):
 		respon = re.sub(r'\n%(prompt)s$' % vars(self), '', respon, re.UNICODE) #입력 프롬프트 제거
 		
 		#오류일 경우 예외를 던짐.
-		match = re.match(r'\!{3} (.+?): (.+?)\n\nDetails:(.*?)\n\n$', respon)
+		match = re.match(r'!{3} \[\S+? (?P<typeNmae>\S+?)\]\n\nDetails:(?P<details>.*?)\n\n', respon) or re.match(r'!{3} (?P<typeNmae>\S+?): (?P<summary>.+?)\n\nDetails:(?P<details>.*?)\n\n$', respon)
 		if match:
-			typeName = match.group(1)
-			summary = match.group(2)
-			details = match.group(3)
+			groupdict = match.groupdict()
+			groupdict.setdefault('summary', '')
+			typeName = groupdict['typeNmae']
+			summary = groupdict['summary']
+			details = groupdict['details']
 			raise MozException(typeName, summary, details)
 		
 		#응답받는 결과가 없는 경우

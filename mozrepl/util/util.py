@@ -4,33 +4,7 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 import cookielib
 
-__all__ = ['getCookiesFromHost', 'convertToJs', 'convertToCmd']
-
-def convertToCmd(arg):
-	"""
-	입력받은 값을 javascript에서 사용 가능한 값으로 변환합니다.
-	
-	:param arg: 변환할 값
-	:type arg: int, float, None, unicode, bytes, str, :py:class:`~mozrepl.type.Object`, :py:class:`~mozrepl.type.Function`
-	:return: javascript에서 사용 할 수 있는 값.
-	:rtype: unicode
-	"""
-	if arg is None:
-		return 'null'
-	
-	if isinstance(arg, (int, float)):
-		return unicode(arg)
-	
-	if isinstance(arg, unicode):
-		return arg
-	
-	if isinstance(arg, str):
-		return repr(arg)
-	
-	if isinstance(arg, Object):
-		return arg.reference
-	
-	raise TypeError('{}는 처리 할 수 없는 타입입니다.'.format(type(arg)))
+__all__ = ['getCookiesFromHost', 'convertToJs']
 
 def convertToJs(arg):
 	"""
