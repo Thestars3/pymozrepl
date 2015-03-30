@@ -6,7 +6,11 @@ import sys
 import re
 import telnetlib
 import uuid
-#from ufp.terminal.debug import print_ as debug
+import os
+import urlparse
+import urllib
+import tempfile
+from ufp.terminal.debug import print_ as debug
 
 from .exception import Exception as MozException
 from .type import Object, Function, Array
@@ -44,17 +48,24 @@ class Mozrepl(object):
 		"""
 		if port is not None:
 			self.port = port
+		
 		if host is not None:
 			self.host = host
+		
 		self._telnet = telnetlib.Telnet(self.host, self.port)
+		
 		match = self._telnet.expect([self._RE_PROMPT], 10)[1]
 		self.prompt = match.group(0)
 		
-		self._baseVarname = '__pymozrepl_' + uuid.uuid4().hex
+		self._baseVarname = '__pymozrepl_{0}'.format(uuid.uuid4().hex)
+		
 		self._rawExecute("""\
-			{baseVar} = Object(); 
-			{baseVar}.ref = Object();
-			""".format(baseVar=self._baseVarname)
+				var {baseVar} = {{
+					'ref': Object(),
+					'buffer': null,
+					'lastCmdValue': null
+				}}
+				""".format(baseVar=self._baseVarname)
 			)
 		pass
 	
@@ -75,62 +86,6 @@ class Mozrepl(object):
 	def __exit__(self, type, value, traceback):
 		self.disconnect()
 	
-	def _convertMozreplResonToPyStruct(self, respon, command):
-		"""
-		undefined, null값은 반환받는 결과가 존재하지 않아, 자동으로 None값이 리턴되었음. 따라서, 처리에서 생략함.
-		array는 오브젝트이므로, 별도의 처리를 하지 않음. 별도로 처리한다면, 값을 copy하는 객체를 만들어 처리 할 것.
-		
-		:todo: function 타입 처리시, 부모 오브젝트를 찾아야 한다. 함수에서 부모 오브젝트를 찾는건 불가능하므로, 입력받은 명령을 분석하여 부모를 찾아야 한다. 이를 좀더 매끄럽게 해야한다.
-		:todo: object 타입 처리시, 부모 오브젝트를 찾아야 묶어야 한다.
-		"""
-		#boolean
-		if respon in ['false', 'true']:
-			return respon == 'true'
-		
-		#Number - int
-		if re.match(r'\d+$', respon):
-			return int(respon)
-		
-		#Number - float
-		if re.match(r'\d+\.\d+$', respon):
-			return float(respon)
-		
-		#string
-		match = re.match(r'"(.*)"$', respon)
-		if match:
-			buffer = match.group(1)
-			#buffer = re.sub(r'\\(.)', r'\1', buffer) # repl.js 에서 별도의 콰우팅을 수행하고 있지 않았음.
-			return buffer
-		
-		#function
-		if respon == 'function() {...}':
-			uuid_ = unicode(uuid.uuid4())
-			match = re.search('(\S+?)(\.[^.]+|\[.+?\])\s*$', command)
-			if match:
-				context = match.group(1)
-			else:
-				context = 'this'
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context))
-			return Function(self, uuid_)
-		
-		type = self.execute("typeof {baseVar}.lastExecVar".format(baseVar=self._baseVarname))
-		
-		#array
-		if type == 'object' and self.execute('Array.isArray({baseVar}.lastExecVar)'.format(baseVar=self._baseVarname)):
-			uuid_ = unicode(uuid.uuid4())
-			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {context}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_))
-			return Array(self, uuid_)
-		
-		#object
-		if type == 'object':
-			uuid_ = unicode(uuid.uuid4())
-			#self.execute('{baseVar}.ref["{uuid}"] = function(){{ with({context}){{ return {baseVar}.lastExecVar; }}; }}'.format(baseVar=self._baseVarname, uuid=uuid_, context=context), 'noreturn')
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastExecVar'.format(baseVar=self._baseVarname, uuid=uuid_))
-			return Object(self, uuid_)
-		
-		return respon
-	
 	def _rawExecute(self, command):
 		"""
 		명령을 실행합니다. 
@@ -143,14 +98,8 @@ class Mozrepl(object):
 		:return: Firefox MozREPL Add-on에서 응답이 없는 경우 None을 반환.
 		:rtype: unicode
 		"""
-		#전송
-		buffer = "{command};\n".format(command=command)
-		buffer = buffer.encode('utf8')
-		self._telnet.write(buffer)
-		
-		#수신
-		buffer = self._telnet.read_until(self.prompt)
-		respon = buffer.decode('utf8')
+		self._telnet.write('{command};\n'.format(command=command).encode('utf8')) #전송
+		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
 		
 		#아무 응답도 없을 경우 None을 반환
 		if re.search('^ %(prompt)s$' % vars(self), respon):
@@ -176,6 +125,9 @@ class Mozrepl(object):
 		"""
 		명령을 실행합니다.
 		
+		:todo: function 타입 처리시, 부모 오브젝트를 찾아야 한다. 함수에서 부모 오브젝트를 찾는건 불가능하므로, 입력받은 명령을 분석하여 부모를 찾아야 한다. 이를 좀더 매끄럽게 해야한다.
+		:todo: object 타입 처리시, 부모 오브젝트를 찾아야 묶어야 한다.
+		
 		:param command: 명령.
 		:type command: unicode
 		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
@@ -188,23 +140,62 @@ class Mozrepl(object):
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
-		#명령이 결과를 반환하는가를 검사
-		isHaveRespon = True
-		command = command.strip()
-		if re.match(r'(//.*$|/\*.*?\*/)?\s*(for|while)\s+', command):
-			isHaveRespon = False
+		#명령을 실행
+		tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')[1]
+		with open(tempFile, mode='w') as f:
+			f.write(command)
+		scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.encode('UTF-8')))
+		respon = self._rawExecute('{baseVar}.lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", this, "UTF-8")'.format(scriptUrl=scriptUrl, baseVar=self._baseVarname)) #명령을 mozrepl 서버에 전송
+		os.remove(tempFile)
 		
-		#명령을 mozrepl 서버에 전송
-		if isHaveRespon:
-			buffer = "{baseVar}.lastExecVar = {command}".format(baseVar=self._baseVarname, command=command)
-		else:
-			buffer = command
-		respon = self._rawExecute(buffer)
-		
+		#응답받은 결과가 없으면 그대로 반환
 		if respon is None:
 			return None
 		
-		if isHaveRespon:
-			return self._convertMozreplResonToPyStruct(respon, command) #변환
-		pass
+		#boolean
+		if respon in ['false', 'true']:
+			return respon == 'true'
+		
+		#Number - int
+		if re.match(r'\d+$', respon):
+			return int(respon)
+		
+		#Number - float
+		if re.match(r'\d+\.\d+$', respon):
+			return float(respon)
+		
+		#string
+		match = re.match(r'"(.*)"$', respon)
+		if match:
+			return match.group(1)
+		
+		#function
+		if respon == 'function() {...}':
+			uuid_ = unicode(uuid.uuid4())
+			match = re.search('(\S+?)(\.[^.]+|\[.+?\])\s*$', command)
+			if match:
+				context = match.group(1)
+			else:
+				context = 'this'
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastCmdValue.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context))
+			return Function(self, uuid_)
+		
+		#타입 분석.
+		type = self.execute("""{baseVar}.buffer = {baseVar}.lastCmdValue; typeof {baseVar}.lastCmdValue""".format(baseVar=self._baseVarname))
+		
+		#array
+		if type == 'object' and self.execute('Array.isArray({baseVar}.buffer)'.format(baseVar=self._baseVarname)):
+			uuid_ = unicode(uuid.uuid4())
+			#self._rawExecute('with(repl._workContext){{ {baseVar}.ref["{uuid}"] = {baseVar}.buffer; }}'.format(baseVar=self._baseVarname, uuid=uuid_))
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.buffer'.format(baseVar=self._baseVarname, uuid=uuid_))
+			return Array(self, uuid_)
+		
+		#object
+		if type == 'object':
+			uuid_ = unicode(uuid.uuid4())
+			#self._rawExecute('with(repl._workContext){{ {baseVar}.ref["{uuid}"] = {baseVar}.buffer; }}'.format(baseVar=self._baseVarname, uuid=uuid_))
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.buffer'.format(baseVar=self._baseVarname, uuid=uuid_))
+			return Object(self, uuid_)
+		
+		return respon
 	

@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 import cookielib
-from ufp.terminal.debug import print_ as debug
+#from ufp.terminal.debug import print_ as debug
 
 def convertToJs(arg):
 	"""
@@ -41,10 +41,7 @@ def getCookiesFromHost(repl, host):
 	:yield: 각 cookielib.Cookie.
 	"""
 	buffer = repl.execute('Services').cookies.getCookiesFromHost(host)
-	debug('repr:', repr(buffer))
-	debug('type:', type(buffer))
 	for cookie in buffer:
-		debug('.')
 		cookie = cookie.QueryInterface(repl.execute('Ci').nsICookie)
 		
 		domain = cookie.host
