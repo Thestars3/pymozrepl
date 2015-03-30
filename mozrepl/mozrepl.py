@@ -147,6 +147,9 @@ class Mozrepl(object):
 		:returns: int : mozrepl Firefox Add-on에서 반환받은 값이 정수인 경우.
 		:returns: float : mozrepl Firefox Add-on에서 반환받은 값이 실수인 경우.
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값이 문자열인 경우.
+		:returns: :py:class:`~mozrepl.type.Object` : mozrepl Firefox Add-on에서 반환받은 값이 object인 경우.
+		:returns: :py:class:`~mozrepl.type.Array` : mozrepl Firefox Add-on에서 반환받은 값이 array인 경우.
+		:returns: :py:class:`~mozrepl.type.Function` : mozrepl Firefox Add-on에서 반환받은 값이 function인 경우.
 		:returns: unicode : mozrepl Firefox Add-on에서 반환받은 값을 분석 할 수 없는 경우 또는 type이 repr로  설정된 경우에 응답 받은 값을 그대로 반환합니다.
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""

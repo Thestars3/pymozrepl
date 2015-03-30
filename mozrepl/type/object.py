@@ -15,6 +15,8 @@ class Object(object):
 	
 	Iterator는 내부적으로, 자바스크립트의 Iterator 오브젝트를 사용합니다. 만약 해당 오브젝트에 Iterator가 구현되지 않았다면, 반환 결과는 Iterator의 구현을 따릅니다.
 	
+	.. caution:: 클로져가 구현되지 않았습니다. context에 의존적인 object의 속성을 참조 할때, Function타입은 실행하지 마십시오.
+	
 	..
 	   자바 스크립트의 오브젝트는 파이썬의 사전과 유사하다.
 	   자바 스크립트의 오브젝트의 각 요소는 모두 개별 요소로 존재한다.

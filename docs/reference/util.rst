@@ -4,8 +4,7 @@
 :py:mod:`util` 모듈
 ==========================
 
-.. toctree::
-   :maxdepth: 2
-
-   util
-   
+.. automodule:: mozrepl.util
+    :members:
+    :undoc-members:
+    :show-inheritance:

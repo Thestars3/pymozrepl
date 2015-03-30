@@ -6,4 +6,4 @@
 
    mozrepl
    type
-   util/index
+   util

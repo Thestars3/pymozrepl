@@ -4,8 +4,6 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 import cookielib
 
-__all__ = ['getCookiesFromHost', 'convertToJs']
-
 def convertToJs(arg):
 	"""
 	입력받은 값을 javascript에서 사용 가능한 값으로 변환합니다.
@@ -36,7 +34,7 @@ def convertToJs(arg):
 def getCookiesFromHost(repl, host):
 	"""
 	:param repl: mozrepl.Mozrepl 객체
-	:type repl: mozrepl.Mozrepl
+	:type repl: :py:class:`~mozrepl.Mozrepl`
 	:param host: 호스트
 	:type host: unicode
 	:yield: 각 cookielib.Cookie.
