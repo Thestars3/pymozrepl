@@ -10,7 +10,7 @@ import os
 import urlparse
 import urllib
 import tempfile
-from ufp.terminal.debug import print_ as debug
+#from ufp.terminal.debug import print_ as debug
 
 from .exception import Exception as MozException
 from .type import Object, Function, Array
@@ -98,6 +98,7 @@ class Mozrepl(object):
 		:return: Firefox MozREPL Add-on에서 응답이 없는 경우 None을 반환.
 		:rtype: unicode
 		"""
+		#debug('raw command:', command)
 		self._telnet.write('{command};\n'.format(command=command).encode('utf8')) #전송
 		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
 		
@@ -121,11 +122,19 @@ class Mozrepl(object):
 		
 		return respon
 	
+	def __del__(self):
+		self._rawExecute("""
+			delete {baseVar}.ref
+			delete {baseVar}.buffer
+			delete {baseVar}
+			""".format(baseVar=self._baseVarname)
+			)
+		pass
+	
 	def execute(self, command):
 		"""
 		명령을 실행합니다.
 		
-		:todo: function 타입 처리시, 부모 오브젝트를 찾아야 한다. 함수에서 부모 오브젝트를 찾는건 불가능하므로, 입력받은 명령을 분석하여 부모를 찾아야 한다. 이를 좀더 매끄럽게 해야한다.
 		:todo: object 타입 처리시, 부모 오브젝트를 찾아야 묶어야 한다.
 		
 		:param command: 명령.
@@ -141,6 +150,7 @@ class Mozrepl(object):
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
 		#명령을 실행
+		#debug('command:', command)
 		tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')[1]
 		with open(tempFile, mode='w') as f:
 			f.write(command)
@@ -173,28 +183,22 @@ class Mozrepl(object):
 		if respon == 'function() {...}':
 			uuid_ = unicode(uuid.uuid4())
 			match = re.search('(\S+?)(\.[^.]+|\[.+?\])\s*$', command)
-			if match:
-				context = match.group(1)
-			else:
-				context = 'this'
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastCmdValue.bind({context})'.format(baseVar=self._baseVarname, uuid=uuid_, context=context))
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.lastCmdValue'.format(baseVar=self._baseVarname, uuid=uuid_))
 			return Function(self, uuid_)
 		
 		#타입 분석.
 		type = self.execute("""{baseVar}.buffer = {baseVar}.lastCmdValue; typeof {baseVar}.lastCmdValue""".format(baseVar=self._baseVarname))
 		
-		#array
-		if type == 'object' and self.execute('Array.isArray({baseVar}.buffer)'.format(baseVar=self._baseVarname)):
-			uuid_ = unicode(uuid.uuid4())
-			#self._rawExecute('with(repl._workContext){{ {baseVar}.ref["{uuid}"] = {baseVar}.buffer; }}'.format(baseVar=self._baseVarname, uuid=uuid_))
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.buffer'.format(baseVar=self._baseVarname, uuid=uuid_))
-			return Array(self, uuid_)
-		
-		#object
+		#array, object
 		if type == 'object':
 			uuid_ = unicode(uuid.uuid4())
-			#self._rawExecute('with(repl._workContext){{ {baseVar}.ref["{uuid}"] = {baseVar}.buffer; }}'.format(baseVar=self._baseVarname, uuid=uuid_))
 			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.buffer'.format(baseVar=self._baseVarname, uuid=uuid_))
+			
+			#array
+			if self.execute('Array.isArray({baseVar}.buffer)'.format(baseVar=self._baseVarname)):
+				return Array(self, uuid_)
+			
+			#object
 			return Object(self, uuid_)
 		
 		return respon
