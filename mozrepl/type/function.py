@@ -2,7 +2,6 @@
 #-*- coding: utf-8 -*-
 
 from __future__ import unicode_literals, absolute_import, division, print_function
-import itertools
 
 from .object import Object
 
@@ -35,9 +34,9 @@ class Function(Object):
 		
 		입력하는 각 인자는 :py:func:`~mozrepl.util.convertToJs` 함수에서 허용하는 형식을 준수해야 합니다.
 		"""
-		buffer = itertools.chain(args)
-		buffer = map(convertToJs, buffer)
-		buffer = '{reference}({args})'.format(reference=self, args=', '.join(buffer))
+		buffer = map(convertToJs, args)
+		buffer = ', '.join(buffer)
+		buffer = '{reference}({args})'.format(reference=self, args=buffer)
 		return self._repl.execute(buffer)
 	
 
