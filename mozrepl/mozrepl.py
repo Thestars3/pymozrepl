@@ -63,7 +63,6 @@ class Mozrepl(object):
 		self._rawExecute("""\
 				var {baseVar} = {{
 					'ref': Object(),
-					'buffer': null,
 					'lastCmdValue': null
 				}}
 				""".format(baseVar=self._baseVarname)
@@ -129,7 +128,6 @@ class Mozrepl(object):
 	def __del__(self):
 		self._rawExecute("""
 			delete {baseVar}.ref
-			delete {baseVar}.buffer
 			delete {baseVar}
 			""".format(baseVar=self._baseVarname)
 			)
@@ -138,6 +136,8 @@ class Mozrepl(object):
 	def execute(self, command):
 		"""
 		명령을 실행합니다.
+		
+		.. attention:: 오브젝트의 메소드를 사용할때, 'repl.execute("repl.home")()'과 같이 함수의 메소드를 바로 반환 받은 뒤 사용 할 수 없습니다. 이와 같은 방식으로 사용하려면, 'repl.execute("repl.home").call("repl")'와 같이 호출 오브젝트를 명시적으로 넘겨주거나, 'repl.execute("repl").home()'과 같이 pymozrepl의 자동 바인딩 기능을 사용하십시오.
 		
 		:param command: 명령.
 		:type command: unicode
@@ -187,15 +187,16 @@ class Mozrepl(object):
 			return Function(self, uuid_)
 		
 		#타입 분석.
-		type = self.execute("""{baseVar}.buffer = {baseVar}.lastCmdValue; typeof {baseVar}.lastCmdValue""".format(baseVar=self._baseVarname))
+		buffer = Object.makeNotinited(self)
+		type = self.execute("""{buffer} = {baseVar}.lastCmdValue; typeof {baseVar}.lastCmdValue""".format(baseVar=self._baseVarname, buffer=buffer))
 		
 		#array, object
 		if type == 'object':
 			uuid_ = unicode(uuid.uuid4())
-			self._rawExecute('{baseVar}.ref["{uuid}"] = {baseVar}.buffer'.format(baseVar=self._baseVarname, uuid=uuid_))
+			self._rawExecute('{baseVar}.ref["{uuid}"] = {buffer}'.format(baseVar=self._baseVarname, buffer=buffer, uuid=uuid_))
 			
 			#array
-			if self.execute('Array.isArray({baseVar}.buffer)'.format(baseVar=self._baseVarname)):
+			if self.execute('Array.isArray({buffer})'.format(buffer=buffer)):
 				return Array(self, uuid_)
 			
 			#object

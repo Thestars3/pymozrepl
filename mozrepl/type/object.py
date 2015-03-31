@@ -3,9 +3,9 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 #from ufp.terminal.debug import print_ as debug
+import uuid
 
 from ..exception import Exception as MozException
-from ..util import convertToJs
 
 class Object(object):
 	"""
@@ -47,6 +47,19 @@ class Object(object):
 	def __init__(self, repl, uuid):
 		self.__dict__['_repl'] = repl
 		self.__dict__['_uuid'] = uuid
+	
+	@classmethod
+	def makeNotinited(cls, repl):
+		"""
+		초기화되지 않은 참조 오브젝트를 얻습니다.
+		
+		:param repl: mozrepl.Mozrepl 객체
+		:type repl: :py:class:`~mozrepl.Mozrepl`
+		:return: 초기화되지 않은 :py:class:`~mozrepl.type.Object` 객체.
+		:rtype: :py:class:`~mozrepl.type.Object`
+		"""
+		buffer= unicode(uuid.uuid4())
+		return cls(repl, buffer)
 	
 	def __unicode__(self):
 		"""
@@ -113,5 +126,5 @@ class Object(object):
 		self._repl._rawExecute('delete {reference}'.format(reference=self))
 	
 
-from .array import Array
 from .function import Function
+from ..util import convertToJs

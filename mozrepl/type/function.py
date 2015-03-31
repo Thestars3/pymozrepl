@@ -5,7 +5,6 @@ from __future__ import unicode_literals, absolute_import, division, print_functi
 import itertools
 
 from .object import Object
-from ..util import convertToJs
 
 class Function(Object):
 	"""
@@ -41,3 +40,5 @@ class Function(Object):
 		buffer = '{reference}({args})'.format(reference=self, args=', '.join(buffer))
 		return self._repl.execute(buffer)
 	
+
+from ..util import convertToJs

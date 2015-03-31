@@ -52,7 +52,7 @@ setup(
 		},
 	zip_safe         = False,
 	license          = "GPL v3",
-	keywords         = ['mozrepl'],
+	keywords         = ['mozrepl', 'firefox'],
 	long_description = read('README.rst'),
 	classifiers      = [
 		"Programming Language :: Python :: 2.7",

@@ -5,8 +5,6 @@ from __future__ import unicode_literals, absolute_import, division, print_functi
 import cookielib
 #from ufp.terminal.debug import print_ as debug
 
-from .exception import Exception as MozException
-
 def convertToJs(arg):
 	"""
 	입력받은 값을 javascript에서 사용 가능한 값으로 변환합니다.
@@ -39,10 +37,11 @@ def convertToJs(arg):
 		buffer = ', '.join(buffer)
 		return '[{0}]'.format(buffer)
 	
-	from .type import Object, Raw
+	from .type import Object
 	if isinstance(arg, Object):
 		return unicode(arg)
 	
+	from .type import Raw
 	if isinstance(arg, Raw):
 		return unicode(arg)
 	
@@ -52,17 +51,17 @@ def getCookiesFromHost(repl, host):
 	"""
 	host와 일치하는 쿠키를 cookielib.Cookie형식으로 가져옵니다.
 	
-	.. todo:: 자동으로 고유의 버퍼를 만들어주는 함수를 만든다. 버퍼가 요구되는 메소들들에 자동 버퍼를 적용시킨다.
-	
 	:param repl: mozrepl.Mozrepl 객체
 	:type repl: :py:class:`~mozrepl.Mozrepl`
 	:param host: 호스트
 	:type host: unicode
 	:yield: 각 cookielib.Cookie.
 	"""
-	repl._rawExecute('{baseVar}.buffer2 = Services.cookies.getCookiesFromHost({host})'.format(baseVar=repl._baseVarname, host=convertToJs(host)))
-	while repl.execute('{baseVar}.buffer2.hasMoreElements()'.format(baseVar=repl._baseVarname)):
-		cookie = repl.execute("{baseVar}.buffer2.getNext().QueryInterface(Ci.nsICookie)".format(baseVar=repl._baseVarname))
+	from .type import Object
+	iter = Object.makeNotinited(repl)
+	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host})'.format(iter=iter, host=convertToJs(host)))
+	while repl.execute('{iter}.hasMoreElements()'.format(iter=iter)):
+		cookie = repl.execute("{iter}.getNext().QueryInterface(Ci.nsICookie)".format(iter=iter))
 		
 		domain = cookie.host
 		initial_dot = domain.startswith(".")
@@ -72,4 +71,4 @@ def getCookiesFromHost(repl, host):
 			expires = None
 		
 		yield cookielib.Cookie(0, cookie.name, cookie.value, None, False, domain, cookie.isDomain, initial_dot, cookie.path, False, cookie.isSecure, expires, cookie.isSession, None, None, {})
-	repl.execute('delete {baseVar}.buffer2'.format(baseVar=repl._baseVarname))
+	pass
