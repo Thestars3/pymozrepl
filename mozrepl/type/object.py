@@ -9,13 +9,38 @@ from ..util import convertToJs
 
 class Object(object):
 	"""
-	만약, 이 객체에 존재하는 속성의 이름과 같은 자바스크립트 오브젝트의 속성에 접근하려면, 사전 형식(__getitem__, __setitem__, __delitem__)으로 원소에 접근하십시오. 그 외에는 모두 속성을 호출하듯이 접근할 수 있습니다.
+	javascript object에 대한 인터페이스를 제공합니다.
 	
-	__eq__, __contains__, __iter__ 메소드가 구현되어 있습니다.
+	+ 사전 형식으로 속성에 접근할 수 있습니다(__getitem__, __setitem__, __delitem__).
+	+ 속성 형식으로 속성에 접근 할 수 있습니다(__getattr__, __setattr__, __delattr__).
+	+ __eq__, __contains__, __iter__ 메소드가 구현되어 있습니다.
+	
+	만약, 이 객체에 존재하는 속성의 이름과 같은 자바스크립트 오브젝트의 속성에 접근하려면, 사전 형식으로 원소에 접근하십시오.
 	
 	Iterator는 내부적으로, 자바스크립트의 Iterator 오브젝트를 사용합니다. 만약 해당 오브젝트에 Iterator가 구현되지 않았다면, 반환 결과는 Iterator의 구현을 따릅니다.
 	
-	.. caution:: 클로져가 구현되지 않았습니다. context에 의존적인 object의 속성을 참조 할때, Function타입은 실행하지 마십시오.
+	사용 예는 다음과 같습니다.
+	
+	.. code-block:: python
+	
+		>>> import mozrepl
+		>>> repl = mozrepl.Mozrepl()
+		>>> a = repl.execute('repl')
+		>>> b = repl.execute('repl')
+		>>> a == b # __eq__
+		True
+		>>> '_name' in a # __contains__
+		True
+		>>> a._name # __getattr__
+		u'repl'
+		>>> a['_name'] # __getitem__
+		u'repl'
+		>>> a['_name'] = 'pymozrepl' # __setitem__
+		>>> a['_name']
+		u'pymozrepl'
+		>>> del a._name # __delattr__
+		>>> a._name
+		None
 	
 	.. todo:: 편의를 위해 속성값을 포함하여 오브젝트 내용을 복사해오는 클래스를 따로 작성한다.
 	"""
