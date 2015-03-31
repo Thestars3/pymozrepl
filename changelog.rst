@@ -1,10 +1,16 @@
 ﻿변경사항
 ==============
 
+v0.1b6
+-------
+
++ Mozrepl.execute 메소드 사용시 발생하던, 'UnicodeEncodeError: 'ascii' codec can't encode character' 오류 수정. [`tb69wn6127`_]
+
 v0.1b5
 -------
 
 + mozrepl.util.convertToJs 함수에서 dict 타입도 처리 할 수 있게 함. [`tb69wn6127`_]
++ mozrepl.type.Raw로 mozrepl.util.convertToJs 함수에서 원본 코드가 그대로 전달될 수 있도록 함. [`tb69wn6127`_]
 
 v0.1b4
 -------

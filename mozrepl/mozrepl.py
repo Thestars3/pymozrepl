@@ -6,7 +6,6 @@ import sys
 import re
 import telnetlib
 import uuid
-import os
 import urlparse
 import urllib
 import tempfile
@@ -100,7 +99,6 @@ class Mozrepl(object):
 		:return: Firefox MozREPL Add-on에서 응답이 없는 경우 None을 반환.
 		:rtype: unicode
 		"""
-		#debug('raw command:', command)
 		self._telnet.write('{command};\n'.format(command=command).encode('utf8')) #전송
 		respon = self._telnet.read_until(self.prompt).decode('utf8') #수신
 		
@@ -141,8 +139,6 @@ class Mozrepl(object):
 		"""
 		명령을 실행합니다.
 		
-		:todo: object 타입 처리시, 부모 오브젝트를 찾아야 묶어야 한다.
-		
 		:param command: 명령.
 		:type command: unicode
 		:raise mozrepl.Exception: mozrepl Firefox Add-on에서 오류를 던질 경우.
@@ -156,15 +152,11 @@ class Mozrepl(object):
 		:returns: bool : mozrepl Firefox Add-on에서 반환받은 값이 진리형인 경우.
 		"""
 		#명령을 실행
-		#debug('command:', command)
-		fd, tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')
-		try:
-			with os.fdopen(fd, 'w') as f:
-				f.write(command)
-			scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.encode('UTF-8')))
+		with tempfile.NamedTemporaryFile('wb', prefix='.tmp_pymozrepl_', suffix='.js') as tempFile:
+			tempFile.write(command.encode('UTF-8'))
+			tempFile.flush()
+			scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.name.encode('UTF-8')))
 			respon = self._rawExecute('{baseVar}.lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", this, "UTF-8")'.format(scriptUrl=scriptUrl, baseVar=self._baseVarname)) #명령을 mozrepl 서버에 전송
-		finally:
-			os.remove(tempFile)
 		
 		#응답받은 결과가 없으면 그대로 반환
 		if respon is None:
