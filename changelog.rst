@@ -1,10 +1,15 @@
 ﻿변경사항
 ==============
 
+v0.1b5
+-------
+
++ mozrepl.util.convertToJs 함수에서 dict 타입도 처리 할 수 있게 함. [`tb69wn6127`_]
+
 v0.1b4
 -------
 
-+ object 타입에서 reference 속성 제거되고, 그 기능을 __unicode__ 메소드가 담당하게됨. [`tb69wn6127`_]
++ object 타입에서 reference 속성이 제거되고, 그 기능을 Object.__unicode__ 메소드가 담당하게됨. [`tb69wn6127`_]
 
 v0.1b3
 -------

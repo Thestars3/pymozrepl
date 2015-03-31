@@ -15,3 +15,8 @@
     :special-members: __call__
     :undoc-members:
     :show-inheritance:
+
+.. autoclass:: mozrepl.type.Raw
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -27,15 +27,17 @@ class Mozrepl(object):
 	
 	..
 	   https://github.com/bard/mozrepl/wiki/Pyrepl bard/mozrepl Wiki
+	
+	:param port: mozrepl Firefox Add-on의 포트.
+	:type port: int
+	:param host: mozrepl Firefox Add-on의 호스트.
+	:type host: unicode
 	"""
 	_RE_PROMPT = re.compile(r'^repl\d*>', re.MULTILINE)
 	
 	def __init__(self, port=DEFAULT_PORT, host=DEFAULT_HOST):
 		"""
 		mozrepl Firefox Add-on과 연결합니다.
-		
-		:param port: mozrepl Firefox Add-on의 포트.
-		:param port: mozrepl Firefox Add-on의 호스트.
 		"""
 		self.connect(port, host)
 	
