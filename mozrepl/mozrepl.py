@@ -154,6 +154,7 @@ class Mozrepl(object):
 		tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')[1]
 		with open(tempFile, mode='w') as f:
 			f.write(command)
+			f.write(';\n')
 		scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.encode('UTF-8')))
 		respon = self._rawExecute('{baseVar}.lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", this, "UTF-8")'.format(scriptUrl=scriptUrl, baseVar=self._baseVarname)) #명령을 mozrepl 서버에 전송
 		os.remove(tempFile)

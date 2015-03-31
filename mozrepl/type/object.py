@@ -41,6 +41,8 @@ class Object(object):
 		>>> del a._name # __delattr__
 		>>> a._name
 		None
+		>>> for key, value in a: # __iter__
+		...
 	
 	.. todo:: 편의를 위해 속성값을 포함하여 오브젝트 내용을 복사해오는 클래스를 따로 작성한다.
 	"""
@@ -63,6 +65,7 @@ class Object(object):
 			>>> obj.reference
 			u'__pymozrepl_c8d7323280c54d09809e2dd7d34d1c70.ref["1e1c7ae3-c1fc-4664-b57f-1281bdc1c996"]'
 			>>> repl.execute('var value = ' + obj.reference)
+		
 		"""
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
@@ -82,11 +85,11 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		self._repl._rawExecute('{baseVar}.buffer = Iterator({reference}, true)'.format(baseVar=self._repl._baseVarname, reference=self.reference))
-		while True:
+		keys = self._repl.execute('Object.keys({reference})'.format(reference=self.reference))
+		for key in keys:
 			try:
-				value = self._repl.execute('{baseVar}.buffer.next()'.format(baseVar=self._repl._baseVarname))
-				yield tuple(value) if isinstance(value, Array) else value
+				value = self._repl.execute('{reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
+				yield key, value
 			except MozException, e:
 				if e.typeName == 'StopIteration':
 					raise StopIteration

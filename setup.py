@@ -58,7 +58,7 @@ setup(
 		"Programming Language :: Python :: 2.7",
 		"Programming Language :: Python :: 2 :: Only",
 		"Environment :: Web Environment :: Mozilla",
-		"Development Status :: 3 - Alpha",
+		"Development Status :: 4 - Beta",
 		"Topic :: Utilities",
 		"Topic :: Software Development :: Libraries :: Python Modules",
 		"Operating System :: OS Independent",
