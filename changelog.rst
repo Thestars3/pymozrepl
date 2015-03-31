@@ -1,6 +1,14 @@
 ﻿변경사항
 ==============
 
+v0.1b2
+-------
+
++ tuple과 list를 javascript 문장으로 변환하는 기능을 추가함. [`tb69wn6127`_]
++ type.Function.__call__ 메소드에서 kwargs 인자를 제거. [`tb69wn6127`_]
++ util.getCookiesFromHost 함수가 정상 작동 되도록 업데이트. [`tb69wn6127`_]
++ Mozrepl.execute에서 'IOError: [Errno 24] Too many open files' 오류가 발생하던 버그 수정. [`tb69wn6127`_]
+
 v0.1b1
 -------
 

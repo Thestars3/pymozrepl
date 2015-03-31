@@ -30,13 +30,13 @@ class Function(Object):
 	def __repr__(self):
 		return 'function() {...}'
 	
-	def __call__(self, *args, **kwargs):
+	def __call__(self, *args):
 		"""
 		javascript Function object를 실행합니다.
 		
 		입력하는 각 인자는 :py:func:`~mozrepl.util.convertToJs` 함수에서 허용하는 형식을 준수해야 합니다.
 		"""
-		buffer = itertools.chain(args, kwargs.values())
+		buffer = itertools.chain(args)
 		buffer = map(convertToJs, buffer)
 		buffer = '{reference}({args})'.format(reference=self.reference, args=', '.join(buffer))
 		return self._repl.execute(buffer)

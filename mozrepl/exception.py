@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 import exceptions
+#from ufp.terminal.debug import print_ as debug
 
 class Exception(exceptions.Exception):
 	"""
@@ -29,5 +30,9 @@ class Exception(exceptions.Exception):
 		return self._details
 	
 	def __str__(self):
-		return '{typeName}: {summary}'.format(typeName=self.typeName, summary=self.summary)
+		msg = unicode()
+		if self.typeName:
+			msg += '{typeName}: '.format(typeName=self.typeName)
+		msg += self.summary
+		return msg
 	

@@ -111,13 +111,17 @@ class Mozrepl(object):
 		respon = re.sub(r'\n%(prompt)s$' % vars(self), '', respon, re.UNICODE) #입력 프롬프트 제거
 		
 		#오류일 경우 예외를 던짐.
-		match = re.match(r'!{3} \[\S+? (?P<typeNmae>\S+?)\]\n\nDetails:(?P<details>.*?)\n\n', respon) or re.match(r'!{3} (?P<typeNmae>\S+?): (?P<summary>.+?)\n\nDetails:(?P<details>.*?)\n\n$', respon)
+		match = re.match(r'!{3} \[\S+? (?P<typeNmae>\S+?)\]\n\nDetails:\n(?P<details>.*?)\n', respon, re.DOTALL) \
+			or re.match(r'!{3} (?P<typeNmae>\S+?): (?P<summary>.+?)\n\nDetails:\n(?P<details>.*?)\n$', respon, re.DOTALL) \
+			or re.match(r'!{3} \[Exception\.{3} (?P<summary>"Component returned failure code: 0x8000ffff \((?P<typeNmae>\S+?)\).*?)\]\n\nDetails:\n(?P<details>.*?)\n$', respon, re.DOTALL) \
+			or re.match(r'!{3} \[Exception\.{3} (?P<summary>.*?)\]\n\nDetails:\n(?P<details>.*?)\n$', respon, re.DOTALL) \
+			or re.match(r'!{3} (?P<summary>.*)\nDetails:\n(?P<details>.*?)\n$', respon, re.DOTALL) \
+			or re.match(r'!{3} (?P<summary>.*)$', respon, re.DOTALL)
 		if match:
 			groupdict = match.groupdict()
-			groupdict.setdefault('summary', '')
-			typeName = groupdict['typeNmae']
-			summary = groupdict['summary']
-			details = groupdict['details']
+			typeName = groupdict.get('typeNmae', '')
+			summary = groupdict.get('summary', '')
+			details = groupdict.get('details', '')
 			raise MozException(typeName, summary, details)
 		
 		return respon
@@ -151,13 +155,14 @@ class Mozrepl(object):
 		"""
 		#명령을 실행
 		#debug('command:', command)
-		tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')[1]
-		with open(tempFile, mode='w') as f:
-			f.write(command)
-			f.write(';\n')
-		scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.encode('UTF-8')))
-		respon = self._rawExecute('{baseVar}.lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", this, "UTF-8")'.format(scriptUrl=scriptUrl, baseVar=self._baseVarname)) #명령을 mozrepl 서버에 전송
-		os.remove(tempFile)
+		fd, tempFile = tempfile.mkstemp(prefix='.tmp_pymozrepl_', suffix='.js')
+		try:
+			with os.fdopen(fd, 'w') as f:
+				f.write(command)
+			scriptUrl = urlparse.urljoin('file:', urllib.pathname2url(tempFile.encode('UTF-8')))
+			respon = self._rawExecute('{baseVar}.lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", this, "UTF-8")'.format(scriptUrl=scriptUrl, baseVar=self._baseVarname)) #명령을 mozrepl 서버에 전송
+		finally:
+			os.remove(tempFile)
 		
 		#응답받은 결과가 없으면 그대로 반환
 		if respon is None:
