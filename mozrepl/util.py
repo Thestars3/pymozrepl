@@ -45,7 +45,7 @@ def getCookiesFromHost(repl, host):
 	"""
 	host와 일치하는 쿠키를 cookielib.Cookie형식으로 가져옵니다.
 	
-	.. todo:: 버그 있음 수정 할 것.
+	.. todo:: 자동으로 고유의 버퍼를 만들어주는 함수를 만든다. 버퍼가 요구되는 메소들들에 자동 버퍼를 적용시킨다.
 	
 	:param repl: mozrepl.Mozrepl 객체
 	:type repl: :py:class:`~mozrepl.Mozrepl`
@@ -53,9 +53,9 @@ def getCookiesFromHost(repl, host):
 	:type host: unicode
 	:yield: 각 cookielib.Cookie.
 	"""
-	repl.execute('{baseVar}.buffer = Services.cookies.getCookiesFromHost({host})'.format(baseVar=self._baseVarname, host=convertToJs(host)))
-	while repl.execute('{baseVar}.buffer.hasMoreElements()'.format(baseVar=self._baseVarname)):
-		cookie = "{baseVar}.buffer.getNext().QueryInterface(Ci.nsICookie)".format(baseVar=self._baseVarname)
+	repl._rawExecute('{baseVar}.buffer2 = Services.cookies.getCookiesFromHost({host})'.format(baseVar=repl._baseVarname, host=convertToJs(host)))
+	while repl.execute('{baseVar}.buffer2.hasMoreElements()'.format(baseVar=repl._baseVarname)):
+		cookie = repl.execute("{baseVar}.buffer2.getNext().QueryInterface(Ci.nsICookie)".format(baseVar=repl._baseVarname))
 		
 		domain = cookie.host
 		initial_dot = domain.startswith(".")
@@ -65,4 +65,4 @@ def getCookiesFromHost(repl, host):
 			expires = None
 		
 		yield cookielib.Cookie(0, cookie.name, cookie.value, None, False, domain, cookie.isDomain, initial_dot, cookie.path, False, cookie.isSecure, expires, cookie.isSession, None, None, {})
-	pass
+	repl.execute('delete {baseVar}.buffer2'.format(baseVar=repl._baseVarname))
