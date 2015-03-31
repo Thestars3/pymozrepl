@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 import cookielib
-from ufp.terminal.debug import print_ as debug
+#from ufp.terminal.debug import print_ as debug
 
 from .exception import Exception as MozException
 
@@ -53,9 +53,9 @@ def getCookiesFromHost(repl, host):
 	:type host: unicode
 	:yield: 각 cookielib.Cookie.
 	"""
-	iter = repl.execute('Services').cookies.getCookiesFromHost(host)
-	while iter.hasMoreElements():
-		cookie = iter.getNext().QueryInterface(repl.execute('Ci').nsICookie)
+	repl.execute('{baseVar}.buffer = Services.cookies.getCookiesFromHost({host})'.format(baseVar=self._baseVarname, host=convertToJs(host)))
+	while repl.execute('{baseVar}.buffer.hasMoreElements()'.format(baseVar=self._baseVarname)):
+		cookie = "{baseVar}.buffer.getNext().QueryInterface(Ci.nsICookie)".format(baseVar=self._baseVarname)
 		
 		domain = cookie.host
 		initial_dot = domain.startswith(".")
