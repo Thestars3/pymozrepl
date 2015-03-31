@@ -1,10 +1,15 @@
 ﻿변경사항
 ==============
 
+v1.0.2
+-------
+
++ mozrepl.util.convertToJs 함수에서 long 타입을 처리 할 수 있도록 개선. [`tb69wn6127`_]
+
 v1.0.1
 -------
 
-+ mozrepl.util.convertToJs 함수에서 bool값을 처리 할 수 있도록 개선. [`tb69wn6127`_]
++ mozrepl.util.convertToJs 함수에서 bool 타입을 처리 할 수 있도록 개선. [`tb69wn6127`_]
 
 v1.0.0
 -------
