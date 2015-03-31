@@ -41,8 +41,6 @@ class Object(object):
 		None
 		>>> for key, value in a: # __iter__
 		...
-	
-	.. todo:: 편의를 위해 속성값을 포함하여 오브젝트 내용을 복사해오는 클래스를 따로 작성한다.
 	"""
 	def __init__(self, repl, uuid):
 		self.__dict__['_repl'] = repl

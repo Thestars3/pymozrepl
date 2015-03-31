@@ -13,7 +13,6 @@ import tempfile
 
 from .exception import Exception as MozException
 from .type import Object, Function, Array
-from .util import convertToJs
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 4242

@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import, division, print_function
 import cookielib
+import json
 #from ufp.terminal.debug import print_ as debug
 
 def convertToJs(arg):
@@ -61,14 +62,35 @@ def getCookiesFromHost(repl, host):
 	iter = Object.makeNotinited(repl)
 	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host})'.format(iter=iter, host=convertToJs(host)))
 	while repl.execute('{iter}.hasMoreElements()'.format(iter=iter)):
-		cookie = repl.execute("{iter}.getNext().QueryInterface(Ci.nsICookie)".format(iter=iter))
+		buffer = repl.execute("""
+		let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie);
+		JSON.stringify(buffer);
+		""".format(iter=iter))
+		cookie = json.loads(buffer)
 		
-		domain = cookie.host
+		domain = cookie.get('host', None)
 		initial_dot = domain.startswith(".")
 		
-		expires = cookie.expires
+		expires = cookie.get('expires', None)
 		if expires == 0:
 			expires = None
 		
-		yield cookielib.Cookie(0, cookie.name, cookie.value, None, False, domain, cookie.isDomain, initial_dot, cookie.path, False, cookie.isSecure, expires, cookie.isSession, None, None, {})
+		yield cookielib.Cookie(
+			0,
+			cookie.get('name', None),
+			cookie.get('value', None),
+			None,
+			False,
+			domain,
+			cookie.get('isDomain', None),
+			initial_dot,
+			cookie.get('path', None), 
+			False, 
+			cookie.get('isSecure', None), 
+			expires,
+			cookie.get('isSession', None),
+			None, 
+			None,
+			{}
+			)
 	pass
