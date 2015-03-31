@@ -6,6 +6,7 @@
 
 .. automodule:: mozrepl.type
     :members: Object, Array
+    :special-members: __unicode__
     :undoc-members: 
     :show-inheritance:
 

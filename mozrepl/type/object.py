@@ -48,8 +48,7 @@ class Object(object):
 		self.__dict__['_repl'] = repl
 		self.__dict__['_uuid'] = uuid
 	
-	@property
-	def reference(self):
+	def __unicode__(self):
 		"""
 		자바스크립트에서 이 오브젝트에 대한 참조값.
 		
@@ -60,18 +59,18 @@ class Object(object):
 			>>> import mozrepl
 			>>> repl = mozrepl.Mozrepl()
 			>>> obj = repl.execute('repl')
-			>>> obj.reference
+			>>> unicode(obj)
 			u'__pymozrepl_c8d7323280c54d09809e2dd7d34d1c70.ref["1e1c7ae3-c1fc-4664-b57f-1281bdc1c996"]'
-			>>> repl.execute('var value = ' + obj.reference)
+			>>> repl.execute('var value = {reference}'.format(reference=obj))
 		
 		"""
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
 	def __eq__(self, other):
-		return self._repl.execute('{other} == {reference}'.format(other=convertToJs(other), reference=self.reference))
+		return self._repl.execute('{other} == {reference}'.format(other=convertToJs(other), reference=self))
 	
 	def __contains__(self, item):
-		return self._repl.execute('{item} in {reference}'.format(item=convertToJs(item), reference=self.reference))
+		return self._repl.execute('{item} in {reference}'.format(item=convertToJs(item), reference=self))
 	
 	def __getattr__(self, name):
 		return self[name]
@@ -83,10 +82,10 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		keys = self._repl.execute('Object.keys({reference})'.format(reference=self.reference))
+		keys = self._repl.execute('Object.keys({reference})'.format(reference=self))
 		for key in keys:
 			try:
-				value = self._repl.execute('{reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
+				value = self._repl.execute('{reference}[{key}]'.format(reference=self, key=convertToJs(key)))
 				yield key, value
 			except MozException, e:
 				if e.typeName == 'StopIteration':
@@ -95,23 +94,23 @@ class Object(object):
 		pass
 	
 	def __repr__(self):
-		return self._repl._rawExecute(self.reference)
+		return self._repl._rawExecute(unicode(self))
 	
 	def __getitem__(self, key):
 		key = convertToJs(key)
-		item = self._repl.execute('{reference}[{key}]'.format(reference=self.reference, key=key))
+		item = self._repl.execute('{reference}[{key}]'.format(reference=self, key=key))
 		if isinstance(item, Function):
-			item = self._repl.execute('{reference}[{key}].bind({reference})'.format(reference=self.reference, key=key))
+			item = self._repl.execute('{reference}[{key}].bind({reference})'.format(reference=self, key=key))
 		return item
 	
 	def __setitem__(self, key, value):
-		self._repl._rawExecute('{reference}[{key}] = {value}'.format(reference=self.reference, key=convertToJs(key), value=value))
+		self._repl._rawExecute('{reference}[{key}] = {value}'.format(reference=self, key=convertToJs(key), value=value))
 	
 	def __delitem__(self, key):
-		self._repl._rawExecute('delete {reference}[{key}]'.format(reference=self.reference, key=convertToJs(key)))
+		self._repl._rawExecute('delete {reference}[{key}]'.format(reference=self, key=convertToJs(key)))
 	
 	def __del__(self):
-		self._repl._rawExecute('delete {reference}'.format(reference=self.reference))
+		self._repl._rawExecute('delete {reference}'.format(reference=self))
 	
 
 from .array import Array

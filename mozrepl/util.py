@@ -37,7 +37,7 @@ def convertToJs(arg):
 	
 	from .type import Object
 	if isinstance(arg, Object):
-		return arg.reference
+		return unicode(arg)
 	
 	raise TypeError('"{type}" 타입은 변환 할 수 없는 타입입니다.'.format(type=type(arg)))
 

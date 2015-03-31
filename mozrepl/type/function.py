@@ -38,6 +38,6 @@ class Function(Object):
 		"""
 		buffer = itertools.chain(args)
 		buffer = map(convertToJs, buffer)
-		buffer = '{reference}({args})'.format(reference=self.reference, args=', '.join(buffer))
+		buffer = '{reference}({args})'.format(reference=self, args=', '.join(buffer))
 		return self._repl.execute(buffer)
 	

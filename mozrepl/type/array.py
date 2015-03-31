@@ -29,11 +29,11 @@ class Array(Object):
 		super(Array, self).__init__(repl, uuid)
 	
 	def __len__(self):
-		return self._repl.execute('{reference}.length'.format(reference=self.reference)) 
+		return self._repl.execute('{reference}.length'.format(reference=self)) 
 	
 	def __iter__(self):
 		max = len(self)
 		for index in range(max):
-			yield self._repl.execute('{reference}[{index}]'.format(reference=self.reference, index=index))
+			yield self._repl.execute('{reference}[{index}]'.format(reference=self, index=index))
 		raise StopIteration
 	
