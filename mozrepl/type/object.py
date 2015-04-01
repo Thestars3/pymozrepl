@@ -78,10 +78,12 @@ class Object(object):
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
 	def __eq__(self, other):
-		return self._repl.execute('{other} == {reference}'.format(other=convertToJs(other), reference=self))
+		buffer = '{other} == {reference}'.format(other=convertToJs(other), reference=self)
+		return self._repl.execute(buffer)
 	
 	def __contains__(self, item):
-		return self._repl.execute('{item} in {reference}'.format(item=convertToJs(item), reference=self))
+		buffer = '{item} in {reference}'.format(item=convertToJs(item), reference=self)
+		return self._repl.execute(buffer)
 	
 	def __getattr__(self, name):
 		return self[name]
@@ -93,35 +95,43 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		keys = self._repl.execute('Object.keys({reference})'.format(reference=self))
+		buffer = 'Object.keys({reference})'.format(reference=self)
+		keys = self._repl.execute(buffer)
 		for key in keys:
 			try:
-				value = self._repl.execute('{reference}[{key}]'.format(reference=self, key=convertToJs(key)))
+				buffer = '{reference}[{key}]'.format(reference=self, key=convertToJs(key))
+				value = self._repl.execute(buffer)
 				yield key, value
 			except MozException, e:
-				if e.typeName == 'StopIteration':
+				if e.name == 'StopIteration':
 					raise StopIteration
 				raise e
 		pass
 	
 	def __repr__(self):
-		return self._repl._rawExecute(unicode(self))
+		buffer = 'repl.represent({reference});'.format(reference=self)
+		return self._repl.execute(buffer)
 	
 	def __getitem__(self, key):
 		key = convertToJs(key)
-		item = self._repl.execute('{reference}[{key}]'.format(reference=self, key=key))
+		buffer = '{reference}[{key}]'.format(reference=self, key=key)
+		item = self._repl.execute(buffer)
 		if isinstance(item, Function):
-			item = self._repl.execute('{reference}[{key}].bind({reference})'.format(reference=self, key=key))
+			buffer = '{reference}[{key}].bind({reference})'.format(reference=self, key=key)
+			item = self._repl.execute(buffer)
 		return item
 	
 	def __setitem__(self, key, value):
-		self._repl._rawExecute('{reference}[{key}] = {value}'.format(reference=self, key=convertToJs(key), value=value))
+		buffer = '{reference}[{key}] = {value}; null;'.format(reference=self, key=convertToJs(key), value=value)
+		self._repl._rawExecute(buffer)
 	
 	def __delitem__(self, key):
-		self._repl._rawExecute('delete {reference}[{key}]'.format(reference=self, key=convertToJs(key)))
+		buffer = 'delete {reference}[{key}]; null;'.format(reference=self, key=convertToJs(key))
+		self._repl._rawExecute(buffer)
 	
 	def __del__(self):
-		self._repl._rawExecute('delete {reference}'.format(reference=self))
+		buffer = 'delete {reference}; null;'.format(reference=self)
+		self._repl._rawExecute(buffer)
 	
 
 from .function import Function

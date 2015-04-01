@@ -12,6 +12,8 @@ class Array(Object):
 	
 	__len__, __iter__ 메소드가 구현되어 있습니다.
 	
+	.. todo:: __iter__ 메소드 사용시, 속성을 JSON.stringify 함수로 json으로 만들어두고 {type, value}, 가져올 수 있는 기본 타입(string, number, bool 등)은 그대로 둔다. 참조값이 존재하는 Object타입은 value에 참조값을 만들어 둔다.
+	
 	사용 예는 다음과 같습니다.
 	
 	.. code-block:: python
@@ -29,11 +31,12 @@ class Array(Object):
 		super(Array, self).__init__(repl, uuid)
 	
 	def __len__(self):
-		return self._repl.execute('{reference}.length'.format(reference=self)) 
+		buffer = '{reference}.length;'.format(reference=self)
+		return self._repl.execute(buffer) 
 	
 	def __iter__(self):
-		max = len(self)
-		for index in range(max):
-			yield self._repl.execute('{reference}[{index}]'.format(reference=self, index=index))
+		for index in range(len(self)):
+			buffer = '{reference}[{index}]'.format(reference=self, index=index)
+			yield self._repl.execute(buffer)
 		raise StopIteration
 	

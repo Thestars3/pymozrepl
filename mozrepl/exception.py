@@ -8,31 +8,24 @@ import exceptions
 class Exception(exceptions.Exception):
 	"""
 	mozrepl Firefox Add-on에서 반환한 오류에 대한 정보를 담는 클래스.
+	
+	javascript Error 객체를 참조 하듯이 속성을 참조하십시오. 단, 메소드에 대한 참조는 지원하지 않습니다.
+	
+	.. todo:: typeName, details 속성을 2.x 버전대에서 제거 할 것.
 	"""
-	def __init__(self, typeName, summary='', details=''):
-		self._typeName = typeName
-		self._summary = summary
-		self._details = details
+	def __init__(self, error):
+		self._error = error
+		self.typeName = self._error.get('name', '')
+		self.details = ''
 	
-	@property
-	def typeName(self):
-		"""타입 이름"""
-		return self._typeName
-	
-	@property
-	def summary(self):
-		"""요약"""
-		return self._summary
-	
-	@property
-	def details(self):
-		"""상세 설명"""
-		return self._details
+	def __getattr__(self, key):
+		if key in self._error:
+			return self._error[key]
 	
 	def __str__(self):
 		msg = unicode()
-		if self.typeName:
-			msg += '{typeName}: '.format(typeName=self.typeName)
-		msg += self.summary
+		if self.name:
+			msg += '{name}: '.format(name=self.name)
+		msg += self.message
 		return msg
 	

@@ -1,6 +1,16 @@
 ﻿변경사항
 ==============
 
+v1.0.4
+-------
+
++ mozrepl.Mozrepl.execute 메소드를 사용할때, 반환받는 값에 현재 프롬프트('repl\\d*>')가 포함되면 비정상적으로 작동하 던 점 수정. [`tb69wn6127`_]
++ mozrepl.Mozrepl.execute 메소드의 반환 받는 값에서 -inf 등의 타입과 long 등을 지원 하도록 개선. [`tb69wn6127`_]
++ 오류 처리를 향상. [`tb69wn6127`_]
+	+ mozrepl.Exception 클래스에서 javascript 오류 객체의 속성 정보를 확인 할 수 있게 함. [`tb69wn6127`_]
+	+ 일부 오류의 경우 오류 이름을 가져오지 못한 던 점 수정. [`tb69wn6127`_]
++ mozrepl.Mozrepl.connect 메소드 사용시, 기존 문맥을 소실하던 버그 수정. [`tb69wn6127`_]
+
 v1.0.3
 -------
 
@@ -70,6 +80,7 @@ v0.1a13
 -------
 
 + 기존에 Mozrepl.execute 메소드에서 for이나 while과 같은 연산자가 처음에 오는 js코드를 넘기면 발생하던 무한 응답 지연 현상 수정. [`tb69wn6127`_]
++ Firefox MozREPL 1.1.2에서 발생하는 UNICODE 문자열 오류(ASCII 코드 범위를 넘어서는 문자열을 사용하면 발생하는 'socket.error: [Errno 32] Broken pipe' 오류 또는 무한 응답 대기 현상)를 회피 처리. [`tb69wn6127`_]
 
 v0.1a12
 -------
