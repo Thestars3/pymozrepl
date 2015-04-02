@@ -42,7 +42,9 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_{0}'.format(uuid.uuid4().hex)
 		
-		buffer = """var {baseVar} = {{ 'ref': {{}}, 'context': {{}} }}; null;""".format(baseVar=self._baseVarname)
+		buffer = """var {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); }}()); null;""".format(
+			baseVar=self._baseVarname
+			)
 		self._rawExecute(buffer)
 	
 	def connect(self, port=None, host=None):
@@ -95,18 +97,23 @@ class Mozrepl(object):
 		:rtype: unicode
 		"""
 		#전송
-		buffer = """try {{ {command}; }} catch (e) {{ (function() {{ let robj = {{ 'exception': null }}; Object.getOwnPropertyNames(e).forEach(function (key) {{ robj.exception[key] = e[key]; }}, e); let buffer = JSON.stringify(robj); buffer = window.btoa(unescape(encodeURIComponent(buffer))); return robj; }}()) }};""".format(command=command)
+		buffer = """try {{ {command}; }} catch (e) {{ (function() {{ let robj = {{ 'exception': {{}} }}; Object.getOwnPropertyNames(e).forEach(function (key) {{ robj.exception[key] = e[key]; }}, e); let buffer; buffer = JSON.stringify(robj); buffer = window.btoa(unescape(encodeURIComponent(buffer))); return buffer; }}()) }};""".format(
+			command = command,
+			baseVar = self._baseVarname
+			)
 		self._telnet.write(buffer.encode('UTF-8'))
 		
-		respon = self._telnet.read_until(self.prompt).decode('UTF-8') #수신
-		
-		#아무 응답도 없을 경우 None을 반환
-		if re.search('^ %(prompt)s$' % vars(self), respon):
-			return None
+		respon = self._telnet.read_until(self.prompt) #수신
 		
 		#응답이 존재하는 경우 응답받은 문자열에서 불필요한 문자열을 제거.
-		respon = re.sub('^ "', '', respon) #응답된 문자열의 앞 공백 제거
-		respon = re.sub(r'"\n%(prompt)s$' % vars(self), '', respon, re.UNICODE) #입력 프롬프트 제거
+		respon = re.sub('^ (\.{4}> )*', '', respon) #응답된 문자열의 앞 공백 제거
+		respon = re.sub(r'\s*%(prompt)s$' % vars(self), '', respon, re.UNICODE) #입력 프롬프트 제거
+		
+		#아무 응답도 없을 경우 None을 반환
+		if not respon:
+			return None
+		
+		respon = respon[1:-1] # 쌍따옴표를 제거
 		
 		respon = base64.decodestring(respon).decode('UTF-8')
 		respon = json.loads(respon) #받은 내용을 파싱.
@@ -149,7 +156,7 @@ class Mozrepl(object):
 			scriptUrl = urlparse.urljoin('file:', buffer)
 			
 			#명령을 mozrepl 서버에 전송
-			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' ) {{ if ( Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; let buffer = JSON.stringify(robj); buffer = window.btoa(unescape(encodeURIComponent(buffer))); return buffer; }}());""".format(
+			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' ) {{ if ( Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; let buffer; buffer = JSON.stringify(robj); buffer = {baseVar}.modules.base64.encode(buffer); return buffer; }}());""".format(
 				scriptUrl = scriptUrl, 
 				baseVar = self._baseVarname,
 				refUuid = uuid.uuid4()

@@ -50,7 +50,7 @@ def getCookiesFromHost(repl, host):
 	"""
 	from .type import Object
 	iter = Object.makeNotinited(repl)
-	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host})'.format(iter=iter, host=convertToJs(host)))
+	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host}); null;'.format(iter=iter, host=convertToJs(host)))
 	while repl.execute('{iter}.hasMoreElements()'.format(iter=iter)):
 		buffer = repl.execute("""
 		let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie);
