@@ -44,14 +44,14 @@ def getAllTabs(repl)	:
 	
 	:param repl: mozrepl 객체.
 	:type repl: :py:class:`~mozrepl.Mozrepl`
-	:yield: 각 탭 :py:class:`~mozrepl.type.Object` 겍체.
+	:yield: 각 탭 :py:class:`~mozrepl.type.Object` 객체.
 	"""
 	buffer = """{baseVar}.modules.require('sdk/tabs');""".format(
 		baseVar = repl._baseVarname
 		)
 	tabs = repl.execute(buffer)
-	for i in range(tabs.length):
-		yield tabs[i]
+	for tab in tabs:
+		yield tab
 	pass
 
 def getCookiesFromHost(repl, host):

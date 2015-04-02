@@ -20,27 +20,28 @@ class Exception(exceptions.Exception):
 	def __init__(self, error):
 		self._error = error
 		self.typeName = self._error.get('name', '')
-		self.details = ''
+		self.details = self._error.get('message', '')
+		message = self._error.get('message', '')
 	
-	def __contains__(self, key):
-		if key in self._error:
+	def __contains__(self, name):
+		if name in self._error:
 			return True
 		return False
 	
-	def __getattr__(self, key):
-		if key in self._error:
-			return self._error[key]
-		#raise AttributeError('"{key}"는 존재하지 않는 키입니다.'.format(key=key))
+	def __getattr__(self, name):
+		if name in self._error:
+			return self._error[name]
+		raise AttributeError(b"{name} 속성이 존재하지 않습니다.".format(name=repr(name)))
 	
 	def __getitem__(self, key):
 		if key in self._error:
 			return self._error[key]
-		#raise AttributeError('"{key}"는 존재하지 않는 키입니다.'.format(key=key))
+		raise KeyError(b"{key} 키가 존재하지 않습니다.".format(key=repr(key)))
 	
 	def __str__(self):
 		msg = unicode()
-		if self.name:
-			msg += '{name}: '.format(name=self.name)
-		msg += self.message
+		if 'name' in self._error:
+			msg += '{name}: '.format(name=self._error['name'])
+		msg += self._error['message']
 		return msg
 	

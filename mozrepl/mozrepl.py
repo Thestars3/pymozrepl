@@ -42,7 +42,7 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """{baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); }}()); null;""".format(
+		buffer = """{baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); null;""".format(
 			baseVar=self._baseVarname
 			)
 		self._rawExecute(buffer)
@@ -110,7 +110,7 @@ class Mozrepl(object):
 		respon = self._telnet.read_until(self.prompt) #수신
 		
 		#응답이 존재하는 경우 응답받은 문자열에서 불필요한 문자열을 제거.
-		respon = re.sub('^ (\.{4}> )*', '', respon) #응답된 문자열의 앞 공백 제거
+		respon = re.sub('^ (\.+> )*', '', respon) #응답된 문자열의 앞 공백 제거
 		respon = re.sub(r'\s*%(prompt)s$' % vars(self), '', respon, re.UNICODE) #입력 프롬프트 제거
 		
 		#아무 응답도 없을 경우 None을 반환
@@ -161,7 +161,7 @@ class Mozrepl(object):
 			scriptUrl = urlparse.urljoin('file:', buffer)
 			
 			#명령을 mozrepl 서버에 전송
-			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' ) {{ if ( Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; let buffer; buffer = JSON.stringify(robj); buffer = {baseVar}.modules.base64.encode(buffer); return buffer; }}());""".format(
+			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = repl.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' || robj.type == 'function' ) {{ if ( robj.type == 'object' && Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; var buffer = JSON.stringify(robj); buffer = {baseVar}.modules.base64.encode(buffer); return buffer; }}());""".format(
 				scriptUrl = scriptUrl, 
 				baseVar = self._baseVarname,
 				refUuid = uuid.uuid4()
@@ -188,5 +188,7 @@ class Mozrepl(object):
 			return Object(self, buffer)
 		
 		#기본 타입
-		return respon['value']
+		if 'value' in respon:
+			return respon['value']
+		return None
 	

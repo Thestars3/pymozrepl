@@ -4,6 +4,7 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 #from ufp.terminal.debug import print_ as debug
 import uuid
+import json
 
 from ..exception import Exception as MozException
 
@@ -13,7 +14,7 @@ class Object(object):
 	
 	+ 사전 형식으로 속성에 접근할 수 있습니다(__getitem__, __setitem__, __delitem__).
 	+ 속성 형식으로 속성에 접근 할 수 있습니다(__getattr__, __setattr__, __delattr__).
-	+ __eq__, __contains__, __iter__ 메소드가 구현되어 있습니다.
+	+ __eq__, __contains__ 메소드가 구현되어 있습니다.
 	
 	만약, 이 객체에 존재하는 속성의 이름과 같은 자바스크립트 오브젝트의 속성에 접근하려면, 사전 형식으로 원소에 접근하십시오.
 	
@@ -78,11 +79,11 @@ class Object(object):
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
 	def __eq__(self, other):
-		buffer = '{other} == {reference}'.format(other=convertToJs(other), reference=self)
+		buffer = '{other} == {reference};'.format(other=convertToJs(other), reference=self)
 		return self._repl.execute(buffer)
 	
 	def __contains__(self, item):
-		buffer = '{item} in {reference}'.format(item=convertToJs(item), reference=self)
+		buffer = '{item} in {reference};'.format(item=convertToJs(item), reference=self)
 		return self._repl.execute(buffer)
 	
 	def __getattr__(self, name):
@@ -95,21 +96,44 @@ class Object(object):
 		del self[name]
 	
 	def __iter__(self):
-		buffer = 'Object.keys({reference})'.format(reference=self)
-		keys = self._repl.execute(buffer)
-		for key in keys:
+		"""
+		javascript Object에 iterator하게 접근합니다.
+		
+		:yield: value; 오브젝트에 '__iterator__' 속성이 존재한다면, Iterator를 사용하여 작업을 수행합니다. 
+		:yield: 별도의 이터레이터가 정의되어 있지 않다면, (key, value) 쌍을 전달합니다.
+		"""
+		buffer = """(function(reference){{ var processValue = function(value){{ var type = typeof value; if ( type == 'object' || type == 'function' ) {{ if ( type == 'object' && Array.isArray(value) ) {{ type = 'array'; }}; var uuid = {baseVar}.modules.uuid.uuid(); {baseVar}.ref[uuid] = value; return {{ 'uuid' : uuid.toString(), 'type' : type }}; }}; return {{ 'value' : value }}; }}; let iter; if ( '__iterator__' in reference ) {{ iter = function* (){{ for (let value in Iterator(reference)) {{ let robj = [ processValue(value) ]; yield JSON.stringify(robj); }}; }}; }} else {{ iter = function* (){{ for (let [key, value] in reference) {{ let robj = [ processValue(key), processValue(value) ]; yield JSON.stringify(robj); }}; }}; }}; return {{ 'iter': iter(), 'next': function(){{ let buffer = this.iter.next(); if ( buffer.done ) {{ throw {{ 'name': 'StopIteration' }}; }}; return buffer.value; }} }}; }}({reference}));""".format(
+			reference = self,
+			baseVar = self._repl._baseVarname
+			)
+		iter = self._repl.execute(buffer)
+		while True:
 			try:
-				buffer = '{reference}[{key}]'.format(reference=self, key=convertToJs(key))
-				value = self._repl.execute(buffer)
-				yield key, value
+				robj = self._repl.execute('{iter}.next();'.format(iter=iter))
 			except MozException, e:
-				if e.name == 'StopIteration':
+				if 'name' in e and e.name == 'StopIteration':
 					raise StopIteration
 				raise e
+			items = list()
+			robj = json.loads(robj)
+			for item in robj:
+				if 'type' in item:
+					if item['type'] == 'object':
+						items.append( Object(self._repl, item['uuid']) )
+					elif item['type'] == 'array':
+						items.append( Array(self._repl, item['uuid']) )
+					elif item['type'] == 'function':
+						items.append( Function(self._repl, item['uuid']) )
+				else:
+					items.append( item['value'] )
+			if len(items) == 1:
+				yield items[0]
+			else:
+				yield tuple(items)
 		pass
 	
 	def __repr__(self):
-		buffer = """(function(thing){{ var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{ repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...';  }}; s += '}}'; }}; return s; }}({reference}));""".format(reference=self)
+		buffer = """(function(thing){{ var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if ( typeof(thing[n]) == 'object' ) {{ repr += '{{...}}'; }} else {{ repr += repl.represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...';  }}; s += '}}'; }}; return s; }}({reference}));""".format(reference=self)
 		return self._repl.execute(buffer)
 	
 	def __getitem__(self, key):
@@ -134,5 +158,6 @@ class Object(object):
 		self._repl._rawExecute(buffer)
 	
 
+from .array import Array
 from .function import Function
 from ..util import convertToJs

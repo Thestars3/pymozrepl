@@ -1,6 +1,17 @@
 ﻿변경사항
 ==============
 
+v1.1.1
+-------
+
++ Firefox MozREPL의 접속 카운트가 1 초과인 상태에서 접속할때, 때때로 발생하는 'ValueError: No JSON object could be decoded' 오류 수정. [`tb69wn6127`_]
++ Object타입 참조자에서 '__iterator__' 속성이 포함된 오브젝트를 iter함수를 통해 접근 할경우, '__iterator__' 속성을 사용하도록 개선. [`tb69wn6127`_]
++ Object 타입의 변수의 repr를 확인 할 때, null, object를 제외한 값이 '[Exception!]'로 표시되던 버그 수정. [`tb69wn6127`_]
++ Exception에서 발생하던 'TypeError: 'NoneType' object is not callable' 오류 수정. [`tb69wn6127`_]
++ Exception에서 정상적으로 오류 메시지가 표시되지 않던 점 수정. [`tb69wn6127`_]
++ 함수를 execute 메소드를 통해 받을 때, 발생하던 "KeyError: u'refUuid'" 오류 수정. [`tb69wn6127`_]
++ undefined, null을 반환받지 못하던 버그 수정. [`tb69wn6127`_]
+
 v1.1.0
 -------
 

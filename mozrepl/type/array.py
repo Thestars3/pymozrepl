@@ -37,6 +37,11 @@ class Array(Object):
 		return self._repl.execute(buffer) 
 	
 	def __iter__(self):
+		"""
+		javascript Object에 iterator하게 접근합니다.
+		
+		:yield: value; 0 ~ 마지막 값까지 yield합니다.
+		"""
 		for index in range(len(self)):
 			buffer = '{reference}[{index}];'.format(
 				reference = self, 
