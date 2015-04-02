@@ -1,6 +1,13 @@
 ﻿변경사항
 ==============
 
+v1.1.0
+-------
+
++ mozrepl.util.getAllTabs 함수 추가. [`tb69wn6127`_]
++ mozrepl.Mozrepl 객체가 삭제 될때, 정상적으로 설정 변수가 제거되지 않던 점 수정. [`tb69wn6127`_]
++ 빈 object에 대한 repr을 구할 때, 'TypeError: __repr__ returned non-string' 오류가 나던 버그 수정. [`tb69wn6127`_]
+
 v1.0.6
 -------
 

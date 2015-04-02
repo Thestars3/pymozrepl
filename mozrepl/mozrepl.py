@@ -40,9 +40,9 @@ class Mozrepl(object):
 		"""
 		self.connect(port, host)
 		
-		self._baseVarname = '__pymozrepl_{0}'.format(uuid.uuid4().hex)
+		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """var {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); }}()); null;""".format(
+		buffer = """{baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); }}()); null;""".format(
 			baseVar=self._baseVarname
 			)
 		self._rawExecute(buffer)
@@ -68,7 +68,11 @@ class Mozrepl(object):
 		self.prompt = match.group(0)
 	
 	def __repr__(self):
-		return 'Mozrepl(port={port}, host={host})'.format(port=repr(self.port), host=repr(self.host))
+		buffer = 'Mozrepl(port={port}, host={host})'.format(
+			port= self.port, 
+			host= repr(self.host)
+			)
+		return buffer
 	
 	def __enter__(self):
 		return self
@@ -113,14 +117,15 @@ class Mozrepl(object):
 		if not respon:
 			return None
 		
+		#받은 내용을 파싱.
 		respon = respon[1:-1] # 쌍따옴표를 제거
-		
 		respon = base64.decodestring(respon).decode('UTF-8')
-		respon = json.loads(respon) #받은 내용을 파싱.
+		respon = json.loads(respon)
 		
 		#오류일 경우 예외를 던짐.
 		if 'exception' in respon:
-			raise MozException(respon['exception'])
+			buffer = respon['exception']
+			raise MozException(buffer)
 		
 		return respon
 	
@@ -169,15 +174,18 @@ class Mozrepl(object):
 		
 		#function
 		if respon['type'] == 'function':
-			return Function(self, respon['refUuid'])
+			buffer = respon['refUuid']
+			return Function(self, buffer)
 		
 		#array
 		if respon['type'] == 'array':
-			return Array(self, respon['refUuid'])
+			buffer = respon['refUuid']
+			return Array(self, buffer)
 		
 		#object
 		if respon['type'] == 'object':
-			return Object(self, respon['refUuid'])
+			buffer = respon['refUuid']
+			return Object(self, buffer)
 		
 		#기본 타입
 		return respon['value']

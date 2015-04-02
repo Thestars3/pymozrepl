@@ -31,12 +31,17 @@ class Array(Object):
 		super(Array, self).__init__(repl, uuid)
 	
 	def __len__(self):
-		buffer = '{reference}.length;'.format(reference=self)
+		buffer = '{reference}.length;'.format(
+			reference = self
+			)
 		return self._repl.execute(buffer) 
 	
 	def __iter__(self):
 		for index in range(len(self)):
-			buffer = '{reference}[{index}]'.format(reference=self, index=index)
+			buffer = '{reference}[{index}];'.format(
+				reference = self, 
+				index = index
+				)
 			yield self._repl.execute(buffer)
 		raise StopIteration
 	

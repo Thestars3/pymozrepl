@@ -109,7 +109,7 @@ class Object(object):
 		pass
 	
 	def __repr__(self):
-		buffer = 'repl.represent({reference});'.format(reference=self)
+		buffer = """(function(thing){{ var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{ repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...';  }}; s += '}}'; }}; return s; }}({reference}));""".format(reference=self)
 		return self._repl.execute(buffer)
 	
 	def __getitem__(self, key):

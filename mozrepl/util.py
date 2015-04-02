@@ -38,6 +38,22 @@ def convertToJs(obj):
 	buffer = json.dumps(obj, cls=_JsonEncoder)
 	return unicode(buffer)
 
+def getAllTabs(repl)	:
+	"""
+	접속한 브라우져에 존재하는 모든 탭 오브젝트를 가져옵니다.
+	
+	:param repl: mozrepl 객체.
+	:type repl: :py:class:`~mozrepl.Mozrepl`
+	:yield: 각 탭 :py:class:`~mozrepl.type.Object` 겍체.
+	"""
+	buffer = """{baseVar}.modules.require('sdk/tabs');""".format(
+		baseVar = repl._baseVarname
+		)
+	tabs = repl.execute(buffer)
+	for i in range(tabs.length):
+		yield tabs[i]
+	pass
+
 def getCookiesFromHost(repl, host):
 	"""
 	host와 일치하는 쿠키를 cookielib.Cookie형식으로 가져옵니다.
@@ -52,10 +68,10 @@ def getCookiesFromHost(repl, host):
 	iter = Object.makeNotinited(repl)
 	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host}); null;'.format(iter=iter, host=convertToJs(host)))
 	while repl.execute('{iter}.hasMoreElements()'.format(iter=iter)):
-		buffer = repl.execute("""
-		let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie);
-		JSON.stringify(buffer);
-		""".format(iter=iter))
+		buffer = """let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie); JSON.stringify(buffer);""".format(
+			iter = iter
+			)
+		buffer = repl.execute(buffer)
 		cookie = json.loads(buffer)
 		
 		domain = cookie.get('host', None)
