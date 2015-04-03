@@ -18,9 +18,8 @@ class Function(Object):
 		>>> func = repl.execute('(function(){ return "mozrepl"; })') #__call__
 		>>> func()
 		u'mozrepl'
-		>>> func = repl.execute('repl').home() #__call__
-		[object ChromeWindow] - {0: {...}, 1: {...}, 2: {...}, 3: {...}, 4: {...}, 5: {...}, 6: {...}, ...}
-	
+		>>> repl.execute('window').toString() #__call__
+		u'[object ChromeWindow]'
 	"""
 	def __init__(self, repl, uuid):
 		super(Function, self).__init__(repl, uuid)
