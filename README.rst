@@ -44,7 +44,10 @@
 	>>> repl.execute('content').document.title
 	u'pymozrepl \\u2014 mozrepl 0.1a8 documentation'
 	>>> import mozrepl.util
-	>>> mozrepl.util.getCookiesFromHost('.cpan.org').next()
+	>>> for cookie in mozrepl.util.getCookiesFromHost(repl, '.cpan.org'):
+	... 	break
+	...
+	>>> cookie
 	Cookie(version=0, name=u'css', value ...
 
 도움말

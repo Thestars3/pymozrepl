@@ -37,6 +37,33 @@ def convertToJs(obj):
 	"""
 	buffer = json.dumps(obj, cls=_JsonEncoder)
 	return unicode(buffer)
+	
+def openTab(repl, url, isPrivate=False, inNewWindow=False, inBackground=False, isPinned=False):
+	"""
+	Opens a new tab. The new tab will open in the active window or in a new window, depending on the inNewWindow option.
+	
+	:param repl: mozrepl 객체.
+	:type repl: :py:class:`~mozrepl.Mozrepl`
+	:param url: String URL to be opened in the new tab. This is a required property.
+	:type url: unicode
+	:param isPrivate: bool which will determine whether the new tab should be private or not. If your add-on does not support private browsing this will have no effect. See the private-browsing documentation for more information. Defaults to false.
+	:type isPrivate: bool
+	:param inNewWindow: If present and true, a new browser window will be opened and the URL will be opened in the first tab in that window. This is an optional property.
+	:type inNewWindow: bool
+	:param inBackground: If present and true, the new tab will be opened to the right of the active tab and will not be active. This is an optional property.
+	:type inBackground: bool
+	:param isPinned: If present and true, then the new tab will be pinned as an app tab.
+	:type isPinned: bool
+	"""
+	buffer = """{baseVar}.modules.require('sdk/tabs').open({{ url: {url}, isPrivate: {isPrivate}, inNewWindow: {inNewWindow}, inBackground: {inBackground}, isPinned: {isPinned} }});""".format(
+		baseVar = repl._baseVarname,
+		url = convertToJs(url),
+		isPrivate = convertToJs(isPrivate),
+		inNewWindow = convertToJs(isPrivate),
+		inBackground = convertToJs(inBackground),
+		isPinned = convertToJs(isPinned)
+		)
+	tabs = repl.execute(buffer)
 
 def getAllTabs(repl)	:
 	"""
@@ -56,13 +83,13 @@ def getAllTabs(repl)	:
 
 def getCookiesFromHost(repl, host):
 	"""
-	host와 일치하는 쿠키를 cookielib.Cookie형식으로 가져옵니다.
+	Returns an generator of cookies that would be returned to a given host, ignoring the cookie flags isDomain, isSecure, and isHttpOnly. Therefore, if the specified host is "weather.yahoo.com", host or domain cookies for "weather.yahoo.com" and "yahoo.com" would both be returned, while a cookie for "my.weather.yahoo.com" would not.
 	
 	:param repl: mozrepl.Mozrepl 객체
 	:type repl: :py:class:`~mozrepl.Mozrepl`
-	:param host: 호스트
+	:param host: The host unicode string to look for, such as "google.com". This should consist only of the host portion of the URI and should not contain a leading dot, port number, or other information.
 	:type host: unicode
-	:yield: 각 cookielib.Cookie.
+	:yield: An cookielib.Cookie objects representing the matching cookies.
 	"""
 	from .type import Object
 	iter = Object.makeNotinited(repl)
