@@ -101,7 +101,7 @@ class Object(object):
 		:yield: value; 오브젝트에 '__iterator__' 속성이 존재한다면, Iterator를 사용하여 작업을 수행합니다. 
 		:yield: 별도의 이터레이터가 정의되어 있지 않다면, (key, value) 쌍을 전달합니다.
 		"""
-		buffer = """(function(reference){{ var processValue = function(value){{ var type = typeof value; if ( type == 'object' || type == 'function' ) {{ if ( type == 'object' && Array.isArray(value) ) {{ type = 'array'; }}; var uuid = {baseVar}.modules.uuid.uuid(); {baseVar}.ref[uuid] = value; return {{ 'uuid' : uuid.toString(), 'type' : type }}; }}; return {{ 'value' : value }}; }}; let iter; if ( '__iterator__' in reference ) {{ iter = function* (){{ for (let value in Iterator(reference)) {{ let robj = [ processValue(value) ]; yield JSON.stringify(robj); }}; }}; }} else {{ iter = function* (){{ for (let [key, value] in reference) {{ let robj = [ processValue(key), processValue(value) ]; yield JSON.stringify(robj); }}; }}; }}; return {{ 'iter': iter(), 'next': function(){{ let buffer = this.iter.next(); if ( buffer.done ) {{ throw {{ 'name': 'StopIteration' }}; }}; return buffer.value; }} }}; }}({reference}));""".format(
+		buffer = """(function(reference){{ var processValue = function(value){{ var type = typeof value; if ( type == 'object' || type == 'function' ) {{ if ( type == 'object' && Array.isArray(value) ) {{ type = 'array'; }}; var uuid = {baseVar}.modules.uuid.uuid(); {baseVar}.ref[uuid] = value; return {{ 'uuid' : uuid.toString(), 'type' : type }}; }}; return {{ 'value' : value }}; }}; let iter; if ( '__iterator__' in reference ) {{ iter = function* (){{ for (let value in Iterator(reference)) {{ let robj = [ processValue(value) ]; yield JSON.stringify(robj); }}; }}; }} else {{ iter = function* (){{ for (let [key, value] in Iterator(reference)) {{ let robj = [ processValue(key), processValue(value) ]; yield JSON.stringify(robj); }}; }}; }}; return {{ 'iter': iter(), 'next': function(){{ let buffer = this.iter.next(); if ( buffer.done ) {{ throw {{ 'name': 'StopIteration' }}; }}; return buffer.value; }} }}; }}({reference}));""".format(
 			reference = self,
 			baseVar = self._repl._baseVarname
 			)
@@ -114,7 +114,7 @@ class Object(object):
 					raise StopIteration
 				raise e
 			items = list()
-			robj = json.loads(robj)
+			robj = json.loads(robj, strict=False)
 			for item in robj:
 				if 'type' in item:
 					if item['type'] == 'object':
@@ -124,7 +124,7 @@ class Object(object):
 					elif item['type'] == 'function':
 						items.append( Function(self._repl, item['uuid']) )
 				else:
-					items.append( item['value'] )
+					items.append(item.get('value', None))
 			if len(items) == 1:
 				yield items[0]
 			else:

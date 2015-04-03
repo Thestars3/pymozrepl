@@ -42,7 +42,7 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); (function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
+		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {{ encode: function(string){{ return window.btoa(unescape(encodeURIComponent(string))) }} }}; {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); (function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
 			baseVar=self._baseVarname
 			)
 		self._rawExecute(buffer)
@@ -101,7 +101,7 @@ class Mozrepl(object):
 		:rtype: unicode
 		"""
 		#전송
-		buffer = """try {{ {command}; }} catch (e) {{ (function() {{ let robj = {{ 'exception': {{}} }}; Object.getOwnPropertyNames(e).forEach(function (key) {{ robj.exception[key] = e[key]; }}, e); let buffer; buffer = JSON.stringify(robj); buffer = window.btoa(unescape(encodeURIComponent(buffer))); return buffer; }}()) }};""".format(
+		buffer = """try {{ {command}; }} catch (e) {{ (function() {{ let robj = {{ 'exception': {{}} }}; Object.getOwnPropertyNames(e).forEach(function (key) {{ robj.exception[key] = e[key]; }}, e); let buffer = JSON.stringify(robj); buffer = window.btoa(unescape(encodeURIComponent(buffer))); return buffer; }}()) }};""".format(
 			command = command,
 			baseVar = self._baseVarname
 			)
@@ -119,8 +119,8 @@ class Mozrepl(object):
 		
 		#받은 내용을 파싱.
 		respon = respon[1:-1] # 쌍따옴표를 제거
-		respon = base64.decodestring(respon).decode('UTF-8')
-		respon = json.loads(respon)
+		respon = base64.decodestring(respon)
+		respon = json.loads(respon, strict=False)
 		
 		#오류일 경우 예외를 던짐.
 		if 'exception' in respon:
