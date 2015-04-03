@@ -37,8 +37,8 @@
 
 	>>> import mozrepl
 	>>> repl = mozrepl.Mozrepl()
-	>>> repl.execute('repl.whereAmI()')
-	[object ChromeWindow] - Document title: "Firefox"
+	>>> repl.execute('window')
+	[object ChromeWindow] - {0: {...}, 1: {...}, 2: {...}, 3: {...}, 4: {...}, close: function() {...}, stop: function() {...}, ...}
 	>>> list(repl.execute(u'["a", 1, 2, 3, 4]'))
 	[u'a', 1, 2, 3, 4]
 	>>> repl.execute('content').document.title

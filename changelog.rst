@@ -1,6 +1,11 @@
 ﻿변경사항
 ==============
 
+v1.1.2
+-------
+
++ 하나 초과의 연결이 동일 Firefox MozREPL(Firefox MozREPL 1.1.2) 서버에 존재할 시 발생하던, 'mozrepl.exception.Exception: repl is not defined' 오류 수정. [`tb69wn6127`_]
+
 v1.1.1
 -------
 

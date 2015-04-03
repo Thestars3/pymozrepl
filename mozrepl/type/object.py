@@ -70,11 +70,10 @@ class Object(object):
 		
 			>>> import mozrepl
 			>>> repl = mozrepl.Mozrepl()
-			>>> obj = repl.execute('repl')
+			>>> obj = repl.execute('window')
 			>>> unicode(obj)
 			u'__pymozrepl_c8d7323280c54d09809e2dd7d34d1c70.ref["1e1c7ae3-c1fc-4664-b57f-1281bdc1c996"]'
 			>>> repl.execute('var value = {reference}'.format(reference=obj))
-		
 		"""
 		return '{baseVar}.ref["{uuid}"]'.format(baseVar=self._repl._baseVarname, uuid=self._uuid)
 	
@@ -133,7 +132,10 @@ class Object(object):
 		pass
 	
 	def __repr__(self):
-		buffer = """(function(thing){{ var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if ( typeof(thing[n]) == 'object' ) {{ repr += '{{...}}'; }} else {{ repr += repl.represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...';  }}; s += '}}'; }}; return s; }}({reference}));""".format(reference=self)
+		buffer = """{baseVar}.modules.represent({reference});""".format(
+			reference = self,
+			baseVar = self._repl._baseVarname
+			)
 		return self._repl.execute(buffer)
 	
 	def __getitem__(self, key):
