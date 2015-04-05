@@ -42,7 +42,8 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {{ encode: function(string){{ return window.btoa(unescape(encodeURIComponent(string))) }} }}; {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); (function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
+		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); 
+(function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
 			baseVar=self._baseVarname
 			)
 		self._rawExecute(buffer)
@@ -79,14 +80,16 @@ class Mozrepl(object):
 	
 	def disconnect(self):
 		"""
-		mozrepl Firefox Add-on과의 연결을 끊습니다.
+		mozrepl Firefox Add-on과의 연결을 일시적으로 끊습니다.
+		
+		서버에 저장된 상태까지 삭제하려면, 이 객체를 삭제하십시오.
 		"""
 		self.prompt = None
 		self._telnet.close()
 		del self._telnet
 	
 	def __exit__(self, type, value, traceback):
-		self.disconnect()
+		del self
 	
 	def _rawExecute(self, command):
 		"""
@@ -132,6 +135,7 @@ class Mozrepl(object):
 	def __del__(self):
 		buffer = """delete {baseVar}; null;""".format(baseVar=self._baseVarname)
 		self._rawExecute(buffer)
+		self.disconnect()
 	
 	def execute(self, command):
 		"""
@@ -162,7 +166,7 @@ class Mozrepl(object):
 			scriptUrl = urlparse.urljoin('file:', buffer)
 			
 			#명령을 mozrepl 서버에 전송
-			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = {baseVar}.modules.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' || robj.type == 'function' ) {{ if ( robj.type == 'object' && Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; var buffer = JSON.stringify(robj); buffer = {baseVar}.modules.base64.encode(buffer); return buffer; }}());""".format(
+			buffer = """(function(){{ let robj = {{}}; let lastCmdValue = {baseVar}.modules.loader.loadSubScript("{scriptUrl}", {baseVar}.context, "UTF-8"); robj.type = typeof lastCmdValue; if ( robj.type == 'object' || robj.type == 'function' ) {{ if ( robj.type == 'object' && Array.isArray(lastCmdValue) ) {{ robj.type = 'array'; }}; {baseVar}.ref['{refUuid}'] = lastCmdValue; robj.refUuid = '{refUuid}'; }} else {{ robj.value = lastCmdValue; }}; var buffer = JSON.stringify(robj); buffer = {baseVar}.modules.base64.encode(buffer, 'utf-8'); return buffer; }}());""".format(
 				scriptUrl = scriptUrl, 
 				baseVar = self._baseVarname,
 				refUuid = uuid.uuid4()
