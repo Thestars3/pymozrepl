@@ -38,12 +38,12 @@ class Mozrepl(object):
 		"""
 		mozrepl Firefox Add-on과 연결합니다.
 		"""
+		self._isConnected = False
 		self.connect(port, host)
 		
 		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); 
-(function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
+		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); (function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
 			baseVar=self._baseVarname
 			)
 		self._rawExecute(buffer)
@@ -64,16 +64,11 @@ class Mozrepl(object):
 			self.host = host
 		
 		self._telnet = telnetlib.Telnet(self.host, self.port)
-		
-		match = self._telnet.expect([self._RE_PROMPT], 10)[1]
-		self.prompt = match.group(0)
+		self.prompt = self._telnet.expect([self._RE_PROMPT], 10)[1].group(0)
+		self._isConnected = True
 	
 	def __repr__(self):
-		buffer = 'Mozrepl(port={port}, host={host})'.format(
-			port= self.port, 
-			host= repr(self.host)
-			)
-		return buffer
+		return 'Mozrepl(port={port}, host={host})'.format(port= self.port,  host=repr(self.host))
 	
 	def __enter__(self):
 		return self
@@ -82,10 +77,15 @@ class Mozrepl(object):
 		"""
 		mozrepl Firefox Add-on과의 연결을 일시적으로 끊습니다.
 		
-		서버에 저장된 상태까지 삭제하려면, 이 객체를 삭제하십시오.
+		서버에 저장된 상태까지 삭제하려면, 이 객체를 삭제해야 합니다.
 		"""
+		#연결이 되어있지 않은 경우, 연결 해제 과정을 거치지 않게 한다.
+		if not self._isConnected:
+			return
+		
 		self.prompt = None
 		self._telnet.close()
+		self._isConnected = False
 		del self._telnet
 	
 	def __exit__(self, type, value, traceback):
@@ -108,7 +108,8 @@ class Mozrepl(object):
 			command = command,
 			baseVar = self._baseVarname
 			)
-		self._telnet.write(buffer.encode('UTF-8'))
+		buffer = buffer.encode('UTF-8')
+		self._telnet.write(buffer)
 		
 		respon = self._telnet.read_until(self.prompt) #수신
 		
@@ -133,6 +134,10 @@ class Mozrepl(object):
 		return respon
 	
 	def __del__(self):
+		#연결이 되어있지 않은 경우, 연결 해제 과정을 거치지 않게 한다.
+		if not self._isConnected:
+			return
+			
 		buffer = """delete {baseVar}; null;""".format(baseVar=self._baseVarname)
 		self._rawExecute(buffer)
 		self.disconnect()

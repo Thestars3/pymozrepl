@@ -1,6 +1,11 @@
 ﻿변경사항
 ==============
 
+v1.2.3
+-------
+
++ 연결 되지 않은 상태에서 객체를 삭제 할때 발생하던, 'Exception AttributeError: "'Mozrepl' object has no attribute '_baseVarname'" in <bound method Mozrepl.__del__ of Mozrepl(port=4242, host=u'127.0.0.1')> ignored' 오류 수정. [`tb69wn6127`_]
+
 v1.2.2
 -------
 
