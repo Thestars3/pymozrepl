@@ -93,12 +93,27 @@ def getCookiesFromHost(repl, host):
 	"""
 	from .type import Object
 	iter = Object.makeNotinited(repl)
-	repl._rawExecute('{iter} = Services.cookies.getCookiesFromHost({host}); null;'.format(iter=iter, host=convertToJs(host)))
+	repl._rawExecute(
+		"""
+		{iter} = {baseVar}.modules.Services.cookies.getCookiesFromHost({host}); 
+		null;
+		""".format(
+			iter=iter, 
+			baseVar=repl._baseVarname,
+			host=convertToJs(host)
+		)
+	)
 	while repl.execute('{iter}.hasMoreElements()'.format(iter=iter)):
-		buffer = """let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie); JSON.stringify(buffer);""".format(
-			iter = iter
+		buffer = repl.execute(
+			"""
+			let {{Ci}} = {baseVar}.modules.require("chrome");
+			let buffer = {iter}.getNext().QueryInterface(Ci.nsICookie);
+			JSON.stringify(buffer);
+			""".format(
+				iter = iter,
+				baseVar = repl._baseVarname
 			)
-		buffer = repl.execute(buffer)
+		)
 		cookie = json.loads(buffer)
 		
 		domain = cookie.get('host', None)

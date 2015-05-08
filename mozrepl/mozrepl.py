@@ -43,10 +43,116 @@ class Mozrepl(object):
 		
 		self._baseVarname = '__pymozrepl_{uuid}'.format(uuid=uuid.uuid4().hex)
 		
-		buffer = """(function(){{ {baseVar} = {{ 'ref': {{}}, 'context': {{}}, 'modules': {{}} }}; }}()); (function(){{ let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}}); let loader = Loader.Loader({{ paths: {{ "sdk/": "resource://gre/modules/commonjs/sdk/", "": "resource://gre/modules/commonjs/" }}, modules: {{ "toolkit/loader": Loader, "@test/options": {{}} }}, resolve: function(id, base) {{ if ( id == "chrome" || id.startsWith("@") ) {{ return id; }}; return Loader.resolve(id, base); }} }}); let requirer = Loader.Module("main", "chrome://URItoRequire"); let require = Loader.Require(loader, requirer); {baseVar}.modules.require = require; }}()); (function(){{ {baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64'); {baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid'); }}()); (function(){{ {baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); }}()); (function(){{ {baseVar}.modules.represent = function(thing){{ var represent = arguments.callee; var s; switch(typeof(thing)) {{ case 'string': s = '"' + thing + '"'; break; case 'number': s = thing.toString(); break; case 'object': var names = []; for(var name in thing) {{ names.push(name); }}; s = thing.toString(); if(names.length > 0) {{ s += ' - {{'; s += names.slice(0, 7).map(function(n) {{ var repr = n + ': '; try {{ if(thing[n] === null) {{ repr += 'null'; }} else if(typeof(thing[n]) == 'object') {{ repr += '{{...}}'; }} else {{  repr += represent(thing[n]); }}; }} catch(e) {{ repr += '[Exception!]'; }}; return repr; }}).join(', '); if(names.length > 7) {{ s += ', ...'; }}; s += '}}'; }} break; case 'function': s = 'function() {{...}}'; break; default: s = thing.toString(); }}; return s; }}; }}()); null;""".format(
-			baseVar=self._baseVarname
+		self._rawExecute(
+			"""
+			(function(){{ 
+				{baseVar} = {{ 
+					'ref': {{}},
+					'context': {{}}, 
+					'modules': {{}}
+				}}; 
+			}}()); 
+			
+			(function(){{
+				{baseVar}.modules.Components = Components;
+			}}());
+			
+			(function(){{
+				let Components = {baseVar}.modules.Components;
+				let {{ Services }} = Components.utils.import('resource://gre/modules/Services.jsm');
+				{baseVar}.modules.Services = Services
+			}}());
+			
+			(function(){{ 
+				let Components = {baseVar}.modules.Components;
+				let {{ Loader }} = Components.utils.import("resource://gre/modules/commonjs/toolkit/loader.js", {{}});
+				let loader = Loader.Loader({{
+					paths: {{ 
+						"sdk/": "resource://gre/modules/commonjs/sdk/", 
+						"": "resource://gre/modules/commonjs/"
+					}}, 
+					modules: {{ 
+						"toolkit/loader": Loader,
+						"@test/options": {{}} 
+					}},
+					resolve: function(id, base) {{ 
+						if ( id == "chrome" || id.startsWith("@") ) {{
+							return id;
+						}}; 
+						return Loader.resolve(id, base); 
+					}} 
+				}}); 
+				let requirer = Loader.Module("main", "chrome://URItoRequire"); 
+				let require = Loader.Require(loader, requirer);
+				{baseVar}.modules.require = require; 
+			}}()); 
+			
+			(function(){{ 
+				{baseVar}.modules.base64 = {baseVar}.modules.require('sdk/base64');
+				{baseVar}.modules.uuid = {baseVar}.modules.require('sdk/util/uuid');
+			}}()); 
+			
+			(function(){{ 
+				let Components = {baseVar}.modules.Components;
+				{baseVar}.modules.loader = Components.classes['@mozilla.org/moz/jssubscript-loader;1'].getService(Components.interfaces.mozIJSSubScriptLoader); 
+			}}());
+			
+			(function(){{ 
+				{baseVar}.modules.represent = function(thing){{
+					var represent = arguments.callee;
+					var s; 
+					switch(typeof(thing)) {{ 
+						case 'string': 
+							s = '"' + thing + '"'; 
+							break; 
+						case 'number': 
+							s = thing.toString(); 
+							break; 
+						case 'object': 
+							var names = []; 
+							for(var name in thing) {{ 
+								names.push(name);
+							}};
+							s = thing.toString();
+							if(names.length > 0) {{
+								s += ' - {{'; 
+								s += names.slice(0, 7).map(function(n) {{ 
+									var repr = n + ': ';
+									try {{ 
+										if(thing[n] === null) {{ 
+											repr += 'null'; 
+										}} 
+										else if(typeof(thing[n]) == 'object') {{
+											repr += '{{...}}';
+										}} 
+										else {{ 
+											repr += represent(thing[n]);
+										}};
+									}} 
+									catch(e) {{ 
+										repr += '[Exception!]'; 
+									}}; 
+									return repr; 
+								}}).join(', '); 
+								if(names.length > 7) {{ 
+									s += ', ...'; 
+								}}; 
+								s += '}}';
+							}} 
+							break; 
+						case 'function': 
+							s = 'function() {{...}}'; 
+							break; 
+						default: 
+							s = thing.toString();
+						}}; 
+					return s; 
+				}}; 
+			}}());
+			null;""".format(
+				baseVar = self._baseVarname
 			)
-		self._rawExecute(buffer)
+		)
 	
 	def connect(self, port=None, host=None):
 		"""

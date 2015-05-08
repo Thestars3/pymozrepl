@@ -1,6 +1,11 @@
 ﻿변경사항
 ==============
 
+v1.2.4
+-------
+
++ 'mozrepl.exception.Exception: Services is not defined' 오류 수정. [`tb69wn6127`_]
+
 v1.2.3
 -------
 
